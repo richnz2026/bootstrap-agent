@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Agent System — Control Dashboard</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #0f1117;
+      color: #e1e4e8;
+      min-height: 100vh;
+      padding: 16px;
+    }
+
+    h1 {
+      font-size: 1.2rem;
+      font-weight: 600;
+      color: #58a6ff;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .card {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      padding: 16px;
+    }
+
+    .card h2 {
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #8b949e;
+      margin-bottom: 12px;
+    }
+
+    .state-badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-bottom: 12px;
+    }
+
+    .state-VAST_HOST_JOB { background: #1a4721; color: #56d364; }
+    .state-VAST_INCOME { background: #1a3a4a; color: #58a6ff; }
+    .state-PREEMPTED_GAMING { background: #2d2a1a; color: #e3b341; }
+    .state-PREEMPTED_PAUSED { background: #3a1f1f; color: #f85149; }
+    .state-RESTORING { background: #2d2a1a; color: #e3b341; }
+    .state-MAINTENANCE { background: #3a1f3a; color: #d2a8ff; }
+    .state-DEGRADED { background: #3a1f1f; color: #f85149; }
+
+    .status-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 6px 0;
+      border-bottom: 1px solid #21262d;
+      font-size: 0.85rem;
+    }
+
+    .status-row:last-child { border-bottom: none; }
+
+    .status-label { color: #8b949e; }
+
+    .pill {
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+
+    .pill-green { background: #1a4721; color: #56d364; }
+    .pill-red { background: #3a1f1f; color: #f85149; }
+    .pill-grey { background: #21262d; color: #8b949e; }
+    .pill-blue { background: #1a3a4a; color: #58a6ff; }
+
+    .queue-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+    }
+
+    .queue-item {
+      background: #0d1117;
+      border: 1px solid #21262d;
+      border-radius: 6px;
+      padding: 8px;
+      text-align: center;
+    }
+
+    .queue-item .count {
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: #e1e4e8;
+    }
+
+    .queue-item .count.has-items { color: #e3b341; }
+
+    .queue-item .label {
+      font-size: 0.7rem;
+      color: #8b949e;
+      margin-top: 2px;
+    }
+
+    .btn-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+    }
+
+    button {
+      padding: 8px 12px;
+      border-radius: 6px;
+      border: 1px solid #30363d;
+      background: #21262d;
+      color: #e1e4e8;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: all 0.15s;
+      font-weight: 500;
+    }
+
+    button:hover { background: #30363d; border-color: #58a6ff; }
+
+    button.danger { border-color: #f85149; color: #f85149; }
+    button.danger:hover { background: #3a1f1f; }
+
+    button.warning { border-color: #e3b341; color: #e3b341; }
+    button.warning:hover { background: #2d2a1a; }
+
+    button.success { border-color: #56d364; color: #56d364; }
+    button.success:hover { background: #1a4721; }
+
+    button.full-width { grid-column: 1 / -1; }
+
+    .task-item {
+      background: #0d1117;
+      border: 1px solid #21262d;
+      border-radius: 6px;
+      padding: 12px;
+      margin-bottom: 8px;
+    }
+
+    .task-item:last-child { margin-bottom: 0; }
+
+    .task-id {
+      font-size: 0.7rem;
+      color: #8b949e;
+      font-family: monospace;
+      margin-bottom: 4px;
+    }
+
+    .task-desc {
+      font-size: 0.85rem;
+      margin-bottom: 8px;
+    }
+
+    .task-actions { display: flex; gap: 8px; }
+
+    .task-actions button {
+      flex: 1;
+      padding: 6px;
+      font-size: 0.75rem;
+    }
+
+    .empty-state {
+      text-align: center;
+      color: #8b949e;
+      font-size: 0.85rem;
+      padding: 16px;
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      padding: 12px 16px;
+      font-size: 0.85rem;
+      opacity: 0;
+      transform: translateY(10px);
+      transition: all 0.2s;
+      z-index: 1000;
+      max-width: 300px;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .toast.ok { border-color: #56d364; color: #56d364; }
+    .toast.error { border-color: #f85149; color: #f85149; }
+
+    .refresh-indicator {
+      font-size: 0.7rem;
+      color: #8b949e;
+      margin-left: auto;
+    }
+
+    .updated {
+      font-size: 0.7rem;
+      color: #8b949e;
+      margin-top: 8px;
+    }
+  </style>
+</head>
+<body>
+
+<h1>
+  🤖 AI Agent System
+  <span class="refresh-indicator" id="refresh-timer">refreshing in 10s</span>
+</h1>
+
+<div class="grid">
+
+  <!-- System State -->
+  <div class="card">
+    <h2>System State</h2>
+    <div id="state-badge" class="state-badge">—</div>
+    <div class="status-row">
+      <span class="status-label">Mining</span>
+      <span id="mining-status" class="pill pill-grey">—</span>
+    </div>
+    <div class="status-row">
+      <span class="status-label">5090 Lock</span>
+      <span id="gpu-lock-status" class="pill pill-grey">—</span>
+    </div>
+    <div class="status-row">
+      <span class="status-label">Gaming PC</span>
+      <span id="gaming-pc-status" class="pill pill-grey">—</span>
+    </div>
+    <div class="status-row">
+      <span class="status-label">Agents</span>
+      <span id="agents-status" class="pill pill-grey">—</span>
+    </div>
+    <div class="updated" id="updated-at">—</div>
+  </div>
+
+  <!-- Queue Depths -->
+  <div class="card">
+    <h2>Queue Depths</h2>
+    <div class="queue-grid" id="queue-grid">
+      <div class="queue-item"><div class="count" id="q-pm">—</div><div class="label">PM Inbox</div></div>
+      <div class="queue-item"><div class="count" id="q-dev">—</div><div class="label">Dev Queue</div></div>
+      <div class="queue-item"><div class="count" id="q-review">—</div><div class="label">Review</div></div>
+      <div class="queue-item"><div class="count" id="q-test">—</div><div class="label">Test</div></div>
+      <div class="queue-item"><div class="count" id="q-media">—</div><div class="label">Media</div></div>
+      <div class="queue-item"><div class="count" id="q-gpu">—</div><div class="label">GPU Jobs</div></div>
+      <div class="queue-item"><div class="count" id="q-approval">—</div><div class="label">Approvals</div></div>
+    </div>
+  </div>
+
+  <!-- System Controls -->
+  <div class="card">
+    <h2>System Controls</h2>
+    <div class="btn-grid">
+      <button class="warning" onclick="api('POST', '/control/maintenance')">🔧 Maintenance</button>
+      <button class="success" onclick="api('POST', '/control/resume')">▶ Resume</button>
+      <button class="success" onclick="api('POST', '/control/mining/enable')">⛏ Mining On</button>
+      <button class="danger" onclick="api('POST', '/control/mining/disable')">⛏ Mining Off</button>
+      <button class="warning" onclick="api('POST', '/control/gpu/5090/lock-vast')">🔒 Lock 5090</button>
+      <button onclick="api('POST', '/control/gpu/5090/release')">🔓 Release 5090</button>
+      <button onclick="api('POST', '/control/gaming-pc/extend')">🎮 PC Extend</button>
+      <button class="warning" onclick="api('POST', '/control/gaming-pc/offline')">🎮 PC Offline</button>
+      <button class="danger full-width" onclick="confirmHalt()">🛑 HALT ALL AGENTS</button>
+    </div>
+  </div>
+
+  <!-- Pending Approvals -->
+  <div class="card">
+    <h2>Pending Approvals</h2>
+    <div id="pending-tasks">
+      <div class="empty-state">No pending tasks</div>
+    </div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  const API = 'http://localhost:8000';
+  let countdown = 10;
+  let countdownTimer;
+
+  async function api(method, path, body) {
+    try {
+      const opts = { method, headers: { 'Content-Type': 'application/json' } };
+      if (body) opts.body = JSON.stringify(body);
+      const res = await fetch(API + path, opts);
+      const data = await res.json();
+      if (res.ok) {
+        showToast(JSON.stringify(data), 'ok');
+        await refresh();
+      } else {
+        showToast(data.detail || 'Error', 'error');
+      }
+    } catch (e) {
+      showToast('API unreachable: ' + e.message, 'error');
+    }
+  }
+
+  async function approveTask(id) {
+    await api('POST', `/tasks/${id}/approve`);
+  }
+
+  async function rejectTask(id) {
+    const comments = prompt('Rejection reason:');
+    if (!comments) return;
+    await api('POST', `/tasks/${id}/reject`, { comments });
+  }
+
+  function confirmHalt() {
+    if (confirm('HALT ALL AGENTS? This will stop all agent activity immediately.')) {
+      api('POST', '/agents/halt-all');
+    }
+  }
+
+  function showToast(msg, type) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = `toast show ${type}`;
+    setTimeout(() => t.className = 'toast', 3000);
+  }
+
+  function setPill(id, value, trueClass, falseClass, trueText, falseText) {
+    const el = document.getElementById(id);
+    el.className = `pill ${value ? trueClass : falseClass}`;
+    el.textContent = value ? trueText : falseText;
+  }
+
+  function setQueueCount(id, count) {
+    const el = document.getElementById(id);
+    el.textContent = count;
+    el.className = count > 0 ? 'count has-items' : 'count';
+  }
+
+  async function refresh() {
+    try {
+      const [statusRes, tasksRes] = await Promise.all([
+        fetch(API + '/status'),
+        fetch(API + '/tasks/pending')
+      ]);
+
+      const status = await statusRes.json();
+      const tasks = await tasksRes.json();
+      const s = status.system;
+      const q = status.queue_depths;
+
+      // State badge
+      const badge = document.getElementById('state-badge');
+      badge.textContent = s.orchestrator_state.replace(/_/g, ' ');
+      badge.className = `state-badge state-${s.orchestrator_state}`;
+
+      // Status pills
+      setPill('mining-status', s.mining_enabled, 'pill-green', 'pill-red', 'Enabled', 'Disabled');
+      setPill('gpu-lock-status', s.gpu_5090_locked_vast, 'pill-blue', 'pill-grey', 'Locked Vast', 'Unlocked');
+      setPill('agents-status', s.agents_halted, 'pill-red', 'pill-green', 'Halted', 'Running');
+
+      // Gaming PC status
+      const pcEl = document.getElementById('gaming-pc-status');
+      if (s.gaming_pc_offline) {
+        pcEl.className = 'pill pill-red'; pcEl.textContent = 'Offline';
+      } else if (s.gaming_pc_extended) {
+        pcEl.className = 'pill pill-blue'; pcEl.textContent = 'Extended';
+      } else {
+        pcEl.className = 'pill pill-green'; pcEl.textContent = 'Normal';
+      }
+
+      // Updated at
+      const d = new Date(s.updated_at * 1000);
+      document.getElementById('updated-at').textContent = `Updated: ${d.toLocaleTimeString()}`;
+
+      // Queue depths
+      setQueueCount('q-pm', q.pm_inbox);
+      setQueueCount('q-dev', q.dev_queue);
+      setQueueCount('q-review', q.review_queue);
+      setQueueCount('q-test', q.test_queue);
+      setQueueCount('q-media', q.media_queue);
+      setQueueCount('q-gpu', q.gpu_jobs);
+      setQueueCount('q-approval', q.approval_queue);
+
+      // Pending tasks
+      const container = document.getElementById('pending-tasks');
+      if (tasks.pending.length === 0) {
+        container.innerHTML = '<div class="empty-state">No pending tasks</div>';
+      } else {
+        container.innerHTML = tasks.pending.map(t => `
+          <div class="task-item">
+            <div class="task-id">${t.id || 'unknown'}</div>
+            <div class="task-desc">${t.description || JSON.stringify(t)}</div>
+            <div class="task-actions">
+              <button class="success" onclick="approveTask('${t.id}')">✓ Approve</button>
+              <button class="danger" onclick="rejectTask('${t.id}')">✗ Reject</button>
+            </div>
+          </div>
+        `).join('');
+      }
+
+    } catch (e) {
+      showToast('Refresh failed: ' + e.message, 'error');
+    }
+  }
+
+  function startCountdown() {
+    clearInterval(countdownTimer);
+    countdown = 10;
+    countdownTimer = setInterval(() => {
+      countdown--;
+      document.getElementById('refresh-timer').textContent = `refreshing in ${countdown}s`;
+      if (countdown <= 0) {
+        refresh();
+        countdown = 10;
+      }
+    }, 1000);
+  }
+
+  // Initial load
+  refresh();
+  startCountdown();
+</script>
+</body>
+</html>
