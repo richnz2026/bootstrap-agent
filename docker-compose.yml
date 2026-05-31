@@ -27,7 +27,7 @@ volumes:
 services:
   # ---- OpenHands bootstrap agent UI -------------------------------------
   openhands:
-    image: docker.all-hands.dev/all-hands-ai/openhands:latest   # VERIFY tag/version
+    image: docker.openhands.dev/openhands/openhands:1.7   # VERIFY tag/version
     container_name: openhands
     ports:
       - "3000:3000"
@@ -66,7 +66,7 @@ services:
       context: ./human_control_dashboard
     container_name: human-control-dashboard
     ports:
-      - "8001:8001"                            # VERIFY internal listen port
+      - "8001:80"                            # VERIFY internal listen port
     depends_on: [human-control-api]
     networks: [agent-net]
     restart: unless-stopped
