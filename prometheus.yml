@@ -1,0 +1,26 @@
+# Prometheus scrape config — RECONSTRUCTED placeholder 2026-05-31
+# The original config was lost with the VM filesystem. This is a sensible
+# default that scrapes prometheus itself plus the stack services that expose
+# metrics. Adjust targets/ports to match what you actually instrumented.
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  # human-control-api — IF it exposes /metrics  # VERIFY
+  - job_name: human-control-api
+    static_configs:
+      - targets: ["human-control-api:8000"]
+
+  # qdrant exposes Prometheus metrics on :6333/metrics
+  - job_name: qdrant
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["qdrant:6333"]
+
+  # Add node-exporter / cadvisor here if you ran them  # VERIFY

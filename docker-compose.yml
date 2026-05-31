@@ -1,0 +1,138 @@
+# ==========================================================================
+# Ghost-VM Phase 1/2 container stack — RECONSTRUCTED 2026-05-31
+# After filesystem loss; rebuilt from documented port map + recovered logs.
+#
+# COMMIT THIS TO bootstrap-agent so the orchestration is never lost again.
+#
+# Lines marked  # VERIFY  are reconstructed best-guesses — confirm against
+# your memory / re-pull behaviour before relying on them.
+#
+# Runtime note: the original VM used a podman + docker mix with ollama as a
+# HOST systemd service (NOT a container) and NVIDIA CDI for GPU access.
+# This compose covers the DOCKER-managed services. Ollama + miner are host
+# services — see REBUILD.md.
+# ==========================================================================
+
+networks:
+  agent-net:
+    driver: bridge
+
+volumes:
+  redis-data:
+  qdrant-data:
+  grafana-data:
+  prometheus-data:
+  openhands-state:
+
+services:
+  # ---- OpenHands bootstrap agent UI -------------------------------------
+  openhands:
+    image: docker.all-hands.dev/all-hands-ai/openhands:latest   # VERIFY tag/version
+    container_name: openhands
+    ports:
+      - "3000:3000"
+    environment:
+      - SANDBOX_RUNTIME_CONTAINER_IMAGE=docker.all-hands.dev/all-hands-ai/runtime:latest  # VERIFY
+      - LOG_ALL_EVENTS=true
+      # OpenHands talks to the host ollama (host service on :11434).
+      # host.docker.internal resolves to the VM host gateway.
+      - LLM_BASE_URL=http://host.docker.internal:11434       # VERIFY
+      - LLM_MODEL=ollama/qwen2.5:14b                          # VERIFY model name
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock   # OpenHands spawns runtime containers
+      - openhands-state:/.openhands-state
+    networks: [agent-net]
+    restart: unless-stopped
+
+  # ---- Your custom control API (source in this repo) --------------------
+  human-control-api:
+    build:
+      context: ./human_control_api          # Dockerfile already in repo
+    container_name: human-control-api
+    ports:
+      - "8000:8000"
+    depends_on: [redis, qdrant]
+    environment:
+      - REDIS_URL=redis://redis:6379          # VERIFY
+      - QDRANT_URL=http://qdrant:6333         # VERIFY
+    networks: [agent-net]
+    restart: unless-stopped
+
+  # ---- Your custom dashboard (source in this repo) ----------------------
+  human-control-dashboard:
+    build:
+      context: ./human_control_dashboard
+    container_name: human-control-dashboard
+    ports:
+      - "8001:8001"                            # VERIFY internal listen port
+    depends_on: [human-control-api]
+    networks: [agent-net]
+    restart: unless-stopped
+
+  # ---- Message bus / task queues / checkpoints --------------------------
+  redis:
+    image: redis:7-alpine                      # VERIFY tag
+    container_name: redis
+    ports:
+      - "6379:6379"
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis-data:/data
+    networks: [agent-net]
+    restart: unless-stopped
+
+  # ---- Vector memory ----------------------------------------------------
+  qdrant:
+    image: qdrant/qdrant:latest                # VERIFY tag
+    container_name: qdrant
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant-data:/qdrant/storage
+    networks: [agent-net]
+    restart: unless-stopped
+
+  # ---- Metrics dashboard ------------------------------------------------
+  grafana:
+    image: grafana/grafana:latest              # VERIFY tag
+    container_name: grafana
+    ports:
+      - "3001:3000"                            # host 3001 -> grafana internal 3000
+    volumes:
+      - grafana-data:/var/lib/grafana
+    networks: [agent-net]
+    restart: unless-stopped
+
+  # ---- Metrics scraping -------------------------------------------------
+  prometheus:
+    image: prom/prometheus:latest              # VERIFY tag
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - prometheus-data:/prometheus
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml   # VERIFY: recreate scrape config
+    networks: [agent-net]
+    restart: unless-stopped
+
+  # ---- Push notifications ----------------------------------------------
+  ntfy:
+    image: binwiederhier/ntfy:latest           # VERIFY tag
+    container_name: ntfy
+    command: serve
+    ports:
+      - "9093:80"                              # VERIFY internal port (ntfy default is 80)
+    networks: [agent-net]
+    restart: unless-stopped
+
+  # ---- Web search -------------------------------------------------------
+  searxng:
+    image: searxng/searxng:latest              # VERIFY tag
+    container_name: searxng
+    ports:
+      - "8080:8080"
+    networks: [agent-net]
+    restart: unless-stopped
