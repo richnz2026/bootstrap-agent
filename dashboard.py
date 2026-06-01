@@ -284,6 +284,37 @@ def update_balance_history(coin, balance_val):
 
 
 
+def update_total_value_history(coin, total_owned, price_usd, usd_to_nzd=1.0):
+    """Snapshot total owned (balance + paid) once per calendar day."""
+    import json as _j, time as _t, os as _os, datetime as _dt
+    hist_file = _os.path.expanduser('~/mining_total_value_history.json')
+    try:
+        hist = _j.loads(open(hist_file).read()) if _os.path.exists(hist_file) else {}
+    except Exception:
+        hist = {}
+    if coin not in hist:
+        hist[coin] = []
+    try:
+        price = float(str(price_usd).replace('$','').replace(',','')) if price_usd and price_usd != '-' else 0
+        nzd_val = round(total_owned * price * usd_to_nzd, 4)
+    except Exception:
+        nzd_val = 0
+    today = _dt.date.today().isoformat()
+    entries = hist[coin]
+    if entries and entries[-1][0] == today:
+        entries[-1] = [today, round(total_owned, 4), nzd_val]
+    else:
+        entries.append([today, round(total_owned, 4), nzd_val])
+    cutoff = (_dt.date.today() - _dt.timedelta(days=90)).isoformat()
+    hist[coin] = [e for e in entries if e[0] >= cutoff]
+    try:
+        open(hist_file, 'w').write(_j.dumps(hist))
+    except Exception:
+        pass
+    return hist.get(coin, [])
+
+
+
 def update_value_history(coin, balance_val, price_usd, usd_to_nzd=1.0):
     """Store NZD value snapshots for growth chart."""
     import json as _j, time as _t, os as _os
@@ -372,6 +403,8 @@ def fetch_mining():
         _fx2 = dict(_state.get('fx', {}))
         _prl_price = pd.get('price_usd', 0) or 0.50  # default 0.50 USD if no price source
         update_value_history('PRL', bal, _prl_price, _fx2.get('usd_nzd', 1.705))
+        _prl_total_owned = bal + pd.get('total_paid_prl', 0)
+        update_total_value_history('PRL', _prl_total_owned, _prl_price, _fx2.get('usd_nzd', 1.705))
         import time as _prl_time
         _now_ts = _prl_time.time()
         worker_data = pd.get('workers', [])
@@ -415,6 +448,7 @@ def fetch_mining():
             'hashrate_series': hr_series[-24:],
             'balance_history': history[-60:],
             'value_history': update_value_history('PRL', bal, pd.get('price_usd', 0) or 0.50, dict(_state.get('fx',{})).get('usd_nzd',1.705))[-60:],
+            'total_value_history': update_total_value_history('PRL', bal + pd.get('total_paid_prl', 0), _prl_price, _fx2.get('usd_nzd', 1.705))[-90:],
             'pool': 'sg1.alphapool.tech:5566',
             'fee': '5% PPLNS',
         }
@@ -5065,13 +5099,12 @@ function updateMiningPanel(d) {
       const ironCharts = (window._ironChartsData || []);
       if (ironCharts.length > 1) renderMiningChart(coin, ironCharts, 'm-hr-chart-' + coin, 'MH/s', '#f97316');
     } else if (coin === 'PRL') {
-      // Already shown in slot 1, show balance in slot 3
-      if (cd.balance_history && cd.balance_history.length > 1) {
-        if (cd.value_history && cd.value_history.length > 1) {
-          renderMiningChart(coin, cd.value_history, 'm-hr-chart-' + coin, 'NZD $', '#a78bfa');
-        } else if (cd.balance_history && cd.balance_history.length > 1) {
-          renderMiningChart(coin, cd.balance_history, 'm-hr-chart-' + coin, 'PRL', '#a78bfa');
-        }
+      // Slot 3: total value (balance + paid) in NZD, daily snapshots
+      if (cd.total_value_history && cd.total_value_history.length > 1) {
+        const tvh = cd.total_value_history.map(e => [new Date(e[0]).getTime() / 1000, e[2]]);
+        renderMiningChart(coin, tvh, 'm-hr-chart-' + coin, 'Total NZD $', '#a78bfa');
+      } else if (cd.balance_history && cd.balance_history.length > 1) {
+        renderMiningChart(coin, cd.balance_history, 'm-hr-chart-' + coin, 'PRL', '#a78bfa');
       }
     }
 
