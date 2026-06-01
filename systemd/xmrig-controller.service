@@ -1,0 +1,13 @@
+[Unit]
+Description=XMRig Vast.ai Controller
+After=docker.service xmrig-qrl.service
+
+[Service]
+Type=simple
+ExecStart=/home/rich-rob/xmrig-controller.sh
+Restart=always
+RestartSec=10
+User=root
+
+[Install]
+WantedBy=multi-user.target

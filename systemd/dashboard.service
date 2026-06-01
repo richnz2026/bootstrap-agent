@@ -1,0 +1,14 @@
+[Unit]
+Description=blackwell-node-01 Dashboard
+After=network.target
+
+[Service]
+User=rich-rob
+WorkingDirectory=/home/rich-rob
+ExecStart=/usr/bin/python3 /home/rich-rob/dashboard.py
+Restart=always
+RestartSec=10
+Environment="PATH=/usr/local/bin:/usr/bin:/bin:/home/rich-rob/.local/bin"
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,5 @@
+@reboot nohup /home/rich-rob/temp_logger.sh >> /home/rich-rob/nohup.out 2>&1 &
+@reboot nohup /home/rich-rob/watchdog.sh >> /home/rich-rob/watchdog.log 2>&1 &
+*/5 * * * * sudo virsh domstate mining-ai-vm | grep -q 'shut off' && [ ! -f /home/rich-rob/disable-lolminer-5070 ] && sudo virsh start mining-ai-vm >> /home/rich-rob/vm-watchdog.log 2>&1
+@reboot nohup /home/rich-rob/mining-controller-all.sh >> /home/rich-rob/container-log.txt 2>&1 &
+@reboot touch /home/rich-rob/disable-lolminer-5090

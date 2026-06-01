@@ -1,0 +1,14 @@
+[Unit]
+Description=Vast.ai Machine Metrics
+Wants=docker.service
+After=docker.service
+
+[Service]
+ExecStart=/var/lib/vastai_kaalia/latest/launch_metrics_pusher.sh
+Restart=always
+RestartSec=10
+User=vastai_kaalia
+Group=docker
+
+[Install]
+WantedBy=multi-user.target

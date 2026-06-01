@@ -1,0 +1,20 @@
+[Unit]
+Description=CPU Mining Manager (QRL/DERO auto-switching)
+After=network-online.target docker.service
+Wants=network-online.target
+Requires=docker.service
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/cpu-mining-manager.sh
+Restart=always
+RestartSec=30
+User=root
+StandardOutput=append:/var/log/cpu-mining-manager.log
+StandardError=append:/var/log/cpu-mining-manager.log
+KillMode=control-group
+KillSignal=SIGTERM
+TimeoutStopSec=15
+
+[Install]
+WantedBy=multi-user.target

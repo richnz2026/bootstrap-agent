@@ -1,0 +1,17 @@
+
+[Unit]
+Description=Mining Controller
+After=network.target docker.service libvirtd.service
+Requires=docker.service
+
+[Service]
+Type=simple
+User=rich-rob
+ExecStart=/bin/bash /home/rich-rob/mining-controller-all.sh
+Restart=always
+RestartSec=10
+StandardOutput=append:/home/rich-rob/container-log.txt
+StandardError=append:/home/rich-rob/container-log.txt
+
+[Install]
+WantedBy=multi-user.target

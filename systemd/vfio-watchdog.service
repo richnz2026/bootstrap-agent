@@ -1,0 +1,14 @@
+[Unit]
+Description=VFIO Watchdog - Protect RTX 5070 from Vast.ai exposure
+After=libvirtd.service
+Wants=libvirtd.service
+
+[Service]
+Type=simple
+User=root
+ExecStart=/home/rich-rob/vfio-watchdog.sh
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

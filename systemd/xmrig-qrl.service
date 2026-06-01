@@ -1,0 +1,13 @@
+[Unit]
+Description=XMRig QRL Miner
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/home/rich-rob/xmrig-6.25.0/xmrig --config /home/rich-rob/xmrig-6.25.0/config.json
+Restart=always
+RestartSec=10
+User=root
+
+[Install]
+WantedBy=multi-user.target
