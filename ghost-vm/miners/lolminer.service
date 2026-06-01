@@ -1,0 +1,15 @@
+[Unit]
+Description=lolMiner ERG (AutolykosV2)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/root/mine_erg.sh
+Restart=on-failure
+RestartSec=15
+TimeoutStopSec=20
+SuccessExitStatus=143
+
+[Install]
+WantedBy=multi-user.target
