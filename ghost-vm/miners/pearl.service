@@ -1,0 +1,14 @@
+[Unit]
+Description=Pearl Mining - AlphaPool
+After=network.target docker.service
+Requires=docker.service
+
+[Service]
+Restart=always
+RestartSec=30
+ExecStartPre=-/usr/bin/docker rm -f pearl-miner
+ExecStart=/bin/bash /root/mine_pearl.sh
+ExecStop=/usr/bin/docker stop pearl-miner
+
+[Install]
+WantedBy=multi-user.target
