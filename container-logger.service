@@ -1,0 +1,14 @@
+[Unit]
+Description=Vast container history logger
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=simple
+User=rich-rob
+ExecStart=/bin/bash /home/rich-rob/container_logger.sh
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
