@@ -1,0 +1,14 @@
+[Unit]
+Description=Gaming PC -> Blackwell external watchdog
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=rich-rob
+ExecStart=/bin/bash /home/rich-rob/blackwell-watchdog.sh
+Restart=always
+RestartSec=15
+
+[Install]
+WantedBy=multi-user.target
