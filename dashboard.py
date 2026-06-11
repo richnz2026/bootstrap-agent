@@ -344,6 +344,28 @@ def update_value_history(coin, balance_val, price_usd, usd_to_nzd=1.0):
             pass
     return hist.get(coin, [])
 
+def fetch_lol5070_enforce():
+    """Standalone 5070 lolMiner mode enforcer — isolated so PRL timeouts can't starve it."""
+    try:
+        home = Path.home()
+        mode = (home / "lolminer-5070-mode").read_text().strip() if (home / "lolminer-5070-mode").exists() else "auto"
+        _ssh = "ssh -i /home/rich-rob/.ssh/id_ed25519_vm -o ConnectTimeout=3 -o BatchMode=yes root@192.168.122.143"
+        _running = run(f"{_ssh} 'systemctl is-active lolminer'", timeout=8).strip() == "active"
+        if mode == "force_off" and _running:
+            run(f"{_ssh} 'systemctl disable --now lolminer; pkill -9 -f lolMiner'", timeout=10)
+            log.info("5070 enforce: force_off but running — stopped + disabled")
+        elif mode == "auto":
+            press = resource_pressure()
+            if press == "crit" and _running:
+                run(f"{_ssh} 'systemctl disable --now lolminer; pkill -9 -f lolMiner'", timeout=10)
+                log.info("5070 auto: crit — stopped lolMiner")
+            elif press == "ok" and not _running:
+                run(f"{_ssh} 'systemctl enable --now lolminer'", timeout=10)
+                log.info("5070 auto: ok — started lolMiner")
+    except Exception:
+        pass
+
+
 def fetch_mining():
     """Fetch unified mining data for all coins."""
     import urllib.request as _ur, json as _j, time as _t
@@ -947,6 +969,7 @@ def fetch_kvm():
     except Exception:
         pass
 
+
     # Check pearl service status on VM
     try:
         pearl_status = run(
@@ -973,6 +996,25 @@ def fetch_kvm():
         stats["coin_blacklist"] = [k for k, v in bl_data.items() if v > now_ts]
     except Exception:
         stats["coin_blacklist"] = []
+
+    # Forge running check
+    try:
+        _ssh_f = ("ssh -i /home/rich-rob/.ssh/id_ed25519_vm -o ConnectTimeout=3 -o BatchMode=yes "
+                  "root@192.168.122.143")
+        forge_tmux = run(
+            f"{_ssh_f} 'su - rich-rob -c \"tmux has-session -t forge 2>/dev/null && echo running || echo stopped\"'",
+            timeout=5
+        ).strip()
+        forge_port = run(
+            f"{_ssh_f} 'ss -tlnp | grep -q 7860 && echo yes || echo no'",
+            timeout=5
+        ).strip()
+        stats["forge_running"]   = forge_tmux == "running"
+        stats["forge_listening"] = forge_port == "yes"
+    except Exception:
+        stats["forge_running"]   = False
+        stats["forge_listening"] = False
+
     _set_state("kvm", stats)
 
 def fetch_xmrig():
@@ -1525,6 +1567,7 @@ def start_background_pollers():
         ("gpu",    fetch_gpu,     CFG["interval_gpu"],    2),
         ("docker", fetch_docker,  CFG["interval_docker"], 4),
         ("xmrig",  fetch_xmrig,   CFG["interval_xmrig"],  6),
+        ("lol5070",  fetch_lol5070_enforce,  30,  8),
         ("qrl",    fetch_qrl,     300,                    8),
         ("kls",    fetch_kls,     30,                     12),
         ("cfx",    fetch_cfx,     300,                    10),
@@ -1821,6 +1864,8 @@ def api_stats():
             "xmrig_force_on":  (home / "enable-xmrig").exists(),
             "xmrig_force_off": (home / "disable-xmrig").exists(),
             "lolminer_locked": (home / "disable-lolminer-5090").exists(),
+            "lol5070_mode":     (home / "lolminer-5070-mode").read_text().strip() if (home / "lolminer-5070-mode").exists() else "auto",
+            "lol5070_off":      (home / "disable-lolminer-5070").exists(),
             "kvm_locked":      (home / "disable-kvm").exists(),
             "kvm_mode":        (home / "kvm-mode").read_text().strip() if (home / "kvm-mode").exists() else "auto",
             "kvm_suspended":   (home / "suspend-kvm").exists(),
@@ -2010,6 +2055,50 @@ def api_control_xmrig():
         enable_file.unlink(missing_ok=True)
         log.info("XMRig lockfile created (legacy toggle)")
         return jsonify({"status": "stopped"})
+
+@app.route("/api/control/lolminer-5070", methods=["POST"])
+def api_control_lolminer_5070():
+    action = (request.get_json(silent=True) or {}).get("action", "auto")
+    home = Path.home()
+    flag = home / "disable-lolminer-5070"
+    mode = home / "lolminer-5070-mode"
+    ssh = ("ssh -i /home/rich-rob/.ssh/id_ed25519_vm -o ConnectTimeout=5 "
+           "-o BatchMode=yes root@192.168.122.143")
+    if action == "on":          # Forced ON
+        mode.write_text("force_on")
+        flag.unlink(missing_ok=True)
+        run(f"{ssh} 'systemctl enable --now lolminer'", timeout=10)
+        return jsonify({"status": "force_on"})
+    elif action == "off":       # Forced OFF
+        mode.write_text("force_off")
+        flag.touch()
+        run(f"{ssh} 'systemctl disable --now lolminer; pkill -9 -f lolMiner'", timeout=10)
+        return jsonify({"status": "force_off"})
+    else:                       # Auto — let the governor decide
+        mode.write_text("auto")
+        flag.unlink(missing_ok=True)
+        return jsonify({"status": "auto"})
+
+@app.route("/api/control/forge", methods=["POST"])
+def api_control_forge():
+    action = (request.get_json(silent=True) or {}).get("action", "status")
+    ssh = ("ssh -i /home/rich-rob/.ssh/id_ed25519_vm -o ConnectTimeout=5 "
+           "-o BatchMode=yes root@192.168.122.143")
+    forge_cmd = ("cd /home/rich-rob/stable-diffusion-webui-forge && "
+                 "source venv/bin/activate && "
+                 "python3.10 launch.py --cuda-malloc --allow-code --listen "
+                 "--vae-in-fp16 --pin-shared-memory --cuda-stream "
+                 "--gradio-allowed-path /home/rich-rob/stable-diffusion-webui-forge/outputs")
+    if action == "start":
+        run(f"{ssh} \"su - rich-rob -c 'tmux new-session -d -s forge \\\"{forge_cmd}\\\"'\"", timeout=15)
+        return jsonify({"status": "starting"})
+    elif action == "stop":
+        run(f"{ssh} \"su - rich-rob -c 'tmux kill-session -t forge 2>/dev/null; pkill -f launch.py'\"", timeout=10)
+        return jsonify({"status": "stopped"})
+    else:
+        out = run(f"{ssh} \"su - rich-rob -c 'tmux has-session -t forge 2>/dev/null && echo running || echo stopped'\"", timeout=5)
+        listening = run(f"{ssh} 'ss -tlnp | grep -q 7860 && echo yes || echo no'", timeout=5)
+        return jsonify({"status": out.strip(), "listening": listening.strip() == "yes"})
 
 @app.route("/api/control/gaming/reboot", methods=["POST"])
 def api_gaming_reboot():
@@ -2875,9 +2964,9 @@ tr:hover td{background:rgba(255,255,255,.015);}
         <div style="display:flex;gap:.25rem;margin-top:.3rem;flex-wrap:wrap;">
           <button class="btn-ctrl btn-sm" id="kvm-suspend-btn" onclick="kvmSuspend()">Suspend</button>
           <button class="btn-ctrl btn-sm" id="kvm-resume-btn" onclick="kvmResume()">Resume</button>
-          <button class="btn-ctrl btn-sm" id="kvm-mode-auto-btn" onclick="kvmSetMode('auto')">Auto</button>
-          <button class="btn-ctrl btn-sm" id="kvm-mode-on-btn" onclick="kvmSetMode('force_on')">Force ON</button>
-          <button class="btn-ctrl btn-sm" id="kvm-mode-off-btn" onclick="kvmSetMode('force_off')">Force OFF</button>
+          <button class="btn-ctrl btn-sm" id="lol5070-auto-btn" onclick="lolminer5070('auto')">Auto</button>
+          <button class="btn-ctrl btn-sm" id="lol5070-on-btn" onclick="lolminer5070('on')">Force ON</button>
+          <button class="btn-ctrl btn-sm" id="lol5070-off-btn" onclick="lolminer5070('off')">Force OFF</button>
         </div>
       </div>
     </div>
@@ -2895,9 +2984,22 @@ tr:hover td{background:rgba(255,255,255,.015);}
           <div class="st"><div class="sl">HASHRATE</div><div class="sv" id="kvm-lol-hr">—</div></div>
 
         </div>
-        <div id="kvm-gpu-block" class="gpu-sub" style="display:none;">
+
+       <div id="kvm-gpu-block" class="gpu-sub" style="display:none;">
         </div>
 
+        <!-- Forge -->
+        <div style="margin-top:.6rem;padding-top:.5rem;border-top:1px solid rgba(255,255,255,.07);">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.35rem;">
+            <span style="font-size:.6rem;font-weight:600;color:var(--dim);letter-spacing:.05em;">🎨 STABLE DIFFUSION FORGE</span>
+            <span id="forge-status" style="font-size:.58rem;padding:.1rem .35rem;border-radius:3px;background:rgba(255,255,255,.05);color:var(--dim)">—</span>
+          </div>
+          <div style="display:flex;gap:.4rem;flex-wrap:wrap;">
+            <button class="btn-ctrl btn-sm" id="forge-start-btn" onclick="forgeControl('start')">▶ Start</button>
+            <button class="btn-ctrl btn-sm" id="forge-stop-btn" onclick="forgeControl('stop')">■ Stop</button>
+            <a id="forge-link" href="http://192.168.122.143:7860" target="_blank" style="display:none;font-size:.58rem;padding:.15rem .4rem;border-radius:3px;background:rgba(99,179,237,.1);border:1px solid rgba(99,179,237,.3);color:#63b3ed;text-decoration:none;">Open UI ↗</a>
+          </div>
+        </div>
 
       </div>
     </div>
@@ -5149,6 +5251,15 @@ function updateMiningPanel(d) {
   if (mqrlForceOn)  { mqrlForceOn.textContent  = (xmrigMode === 'forced' && xmrigOn)  ? 'Forced ON'  : 'Force ON';  mqrlForceOn.className  = 'btn-ctrl btn-sm' + (xmrigMode === 'forced' && xmrigOn  ? ' active' : ''); }
   if (mqrlForceOff) { mqrlForceOff.textContent = (xmrigMode === 'forced' && xmrigOff) ? 'Forced OFF' : 'Force OFF'; mqrlForceOff.className = 'btn-ctrl btn-sm' + (xmrigMode === 'forced' && xmrigOff ? ' active' : ''); }
 
+  // 5070 lolMiner buttons (glow active mode)
+  const lol5070mode = d.lol5070_mode || 'auto';
+  const lol5070auto = document.getElementById('lol5070-auto-btn');
+  const lol5070on   = document.getElementById('lol5070-on-btn');
+  const lol5070off  = document.getElementById('lol5070-off-btn');
+  if (lol5070auto) lol5070auto.className = 'btn-ctrl btn-sm' + (lol5070mode === 'auto' ? ' active' : '');
+  if (lol5070on)   { lol5070on.textContent  = lol5070mode === 'force_on'  ? 'Forced ON'  : 'Force ON';  lol5070on.className  = 'btn-ctrl btn-sm' + (lol5070mode === 'force_on'  ? ' active' : ''); }
+  if (lol5070off)  { lol5070off.textContent = lol5070mode === 'force_off' ? 'Forced OFF' : 'Force OFF'; lol5070off.className = 'btn-ctrl btn-sm' + (lol5070mode === 'force_off' ? ' active' : ''); }
+
   // PRL buttons
   const prlRunning = (d.kvm || {}).pearl_running;
   // Update PRL machines badge
@@ -5440,6 +5551,24 @@ async function toggleLolminer() {
   setTimeout(pollStats, 5000);
 }
 
+async function lolminer5070(action) {
+  await fetch('/api/control/lolminer-5070', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({action: action})
+  });
+  setTimeout(pollStats, 3000);
+}
+
+async function forgeControl(action) {
+  await fetch('/api/control/forge', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({action})
+  });
+  setTimeout(pollStats, 3000);
+}
+
 function syncControlButtons(d) {
   const x = d.xmrig || {};
   const k = d.kvm || {};
@@ -5521,6 +5650,8 @@ function syncControlButtons(d) {
       lolBtn.textContent = '⛏ lolMiner: Stop'; lolBtn.className = 'btn-ctrl';
     }
   }
+ 
+ 
   // Kill button
   const killBtn = document.getElementById('kill-btn');
   if (d.kill_active) {
@@ -5528,8 +5659,23 @@ function syncControlButtons(d) {
   } else {
     killBtn.textContent = '⛔ KILL'; killBtn.classList.remove('active');
   }
+  // Forge status
+  const forgeStatus = document.getElementById('forge-status');
+  const forgeLink   = document.getElementById('forge-link');
+  const forgeStart  = document.getElementById('forge-start-btn');
+  const forgeStop   = document.getElementById('forge-stop-btn');
+  const forgeRunning   = k.forge_running   || false;
+  const forgeListening = k.forge_listening || false;
+  if (forgeStatus) {
+    forgeStatus.textContent = forgeRunning ? (forgeListening ? 'ready' : 'starting…') : 'stopped';
+    forgeStatus.style.color = forgeRunning ? (forgeListening ? 'var(--green)' : 'var(--yellow, #f6c90e)') : 'var(--dim)';
+  }
+  if (forgeLink) {
+    forgeLink.style.display = forgeListening ? 'inline' : 'none';
+  }
+  if (forgeStart) forgeStart.className = 'btn-ctrl btn-sm' + (forgeRunning ? ' active' : '');
+  if (forgeStop)  forgeStop.className  = 'btn-ctrl btn-sm' + (!forgeRunning ? ' active' : '');
 }
-
 </script>
 </body>
 </html>"""

@@ -1,0 +1,2139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BLACKWELL / IMAGE VAULT</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow+Condensed:wght@300;400;600;700&display=swap');
+
+  :root {
+    --bg:        #080b0f;
+    --surface:   #0d1117;
+    --border:    #1c2530;
+    --border-hi: #2a3a4a;
+    --amber:     #e8a020;
+    --amber-dim: #7a5010;
+    --red:       #c0392b;
+    --red-dim:   #5a1a14;
+    --green:     #2ecc71;
+    --green-dim: #144a2c;
+    --text:      #c8d8e8;
+    --text-dim:  #4a6070;
+    --mono:      'Share Tech Mono', monospace;
+    --sans:      'Barlow Condensed', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 13px;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Scanline overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,0.06) 2px,
+      rgba(0,0,0,0.06) 4px
+    );
+    pointer-events: none;
+    z-index: 9999;
+  }
+
+  /* ── HEADER ── */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 24px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .brand {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+  }
+
+  .brand-node {
+    font-family: var(--sans);
+    font-weight: 700;
+    font-size: 18px;
+    letter-spacing: 0.15em;
+    color: var(--amber);
+    text-transform: uppercase;
+  }
+
+  .brand-sub {
+    font-size: 11px;
+    color: var(--text-dim);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+  }
+
+  .header-status {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+
+  .count-badge {
+    font-size: 11px;
+    color: var(--text-dim);
+    letter-spacing: 0.1em;
+  }
+
+  .count-badge span {
+    color: var(--amber);
+    font-size: 15px;
+  }
+
+  /* ── TOGGLE ── */
+  .capture-toggle {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 14px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    cursor: pointer;
+    transition: border-color 0.2s;
+    user-select: none;
+  }
+
+  .capture-toggle:hover { border-color: var(--border-hi); }
+
+  .capture-toggle.enabled {
+    border-color: var(--green-dim);
+    background: rgba(46,204,113,0.04);
+  }
+
+  .toggle-label {
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    color: var(--text-dim);
+    text-transform: uppercase;
+  }
+
+  .capture-toggle.enabled .toggle-label { color: var(--green); }
+
+  .toggle-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--text-dim);
+    transition: background 0.2s, box-shadow 0.2s;
+    flex-shrink: 0;
+  }
+
+  .capture-toggle.enabled .toggle-dot {
+    background: var(--green);
+    box-shadow: 0 0 8px var(--green);
+    animation: pulse-dot 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse-dot {
+    0%, 100% { box-shadow: 0 0 6px var(--green); }
+    50%       { box-shadow: 0 0 14px var(--green); }
+  }
+
+  /* ── TOOLBAR ── */
+  .toolbar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 24px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(13,17,23,0.7);
+    flex-wrap: wrap;
+  }
+
+  .toolbar-label {
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    margin-right: 4px;
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 7px 14px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+
+  .btn:hover:not(:disabled) {
+    border-color: var(--border-hi);
+    background: rgba(255,255,255,0.03);
+  }
+
+  .btn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+  }
+
+  .btn-amber {
+    border-color: var(--amber-dim);
+    color: var(--amber);
+  }
+
+  .btn-amber:hover:not(:disabled) {
+    border-color: var(--amber);
+    background: rgba(232,160,32,0.06);
+    box-shadow: 0 0 12px rgba(232,160,32,0.12);
+  }
+
+  .btn-red {
+    border-color: var(--red-dim);
+    color: var(--red);
+  }
+
+  .btn-red:hover:not(:disabled) {
+    border-color: var(--red);
+    background: rgba(192,57,43,0.07);
+    box-shadow: 0 0 12px rgba(192,57,43,0.12);
+  }
+
+  .btn-danger {
+    border-color: #7a1a1a;
+    color: #ff4444;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .btn-danger::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+      45deg,
+      transparent,
+      transparent 4px,
+      rgba(255,68,68,0.04) 4px,
+      rgba(255,68,68,0.04) 8px
+    );
+  }
+
+  .btn-danger:hover:not(:disabled) {
+    border-color: #ff4444;
+    background: rgba(255,68,68,0.08);
+    box-shadow: 0 0 16px rgba(255,68,68,0.15);
+  }
+
+  .btn-icon { font-size: 13px; }
+
+  .spacer { flex: 1; }
+
+  /* ── CONFIRM OVERLAY ── */
+  .confirm-bar {
+    display: none;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 24px;
+    background: rgba(192,57,43,0.12);
+    border-bottom: 1px solid var(--red-dim);
+    animation: slide-in 0.15s ease;
+  }
+
+  .confirm-bar.visible { display: flex; }
+
+  @keyframes slide-in {
+    from { opacity: 0; transform: translateY(-6px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .confirm-text {
+    font-size: 11px;
+    color: #ff6b6b;
+    letter-spacing: 0.1em;
+    flex: 1;
+  }
+
+  /* ── LOG BAR ── */
+  .log-bar {
+    padding: 6px 24px;
+    background: rgba(0,0,0,0.4);
+    border-bottom: 1px solid var(--border);
+    font-size: 11px;
+    color: var(--text-dim);
+    min-height: 28px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .log-bar .log-entry {
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  .log-bar .log-entry.visible { opacity: 1; }
+
+  .log-ts { color: var(--amber-dim); }
+  .log-ok  { color: var(--green); }
+  .log-err { color: var(--red); }
+  .log-inf { color: var(--text-dim); }
+
+  /* ── VAULT LAYOUT ── */
+  .vault-layout {
+    display: flex;
+    align-items: flex-start;
+    min-height: calc(100vh - 120px);
+  }
+
+  .folder-sidebar {
+    width: 200px;
+    min-width: 200px;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    padding: .75rem 0;
+    position: sticky;
+    top: 0;
+    max-height: calc(100vh - 120px);
+    overflow-y: auto;
+  }
+
+  .folder-sidebar-title {
+    font-size: .58rem;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    padding: 0 .75rem .4rem;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: .3rem;
+  }
+
+  .folder-group-label {
+    font-size: .58rem;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: .07em;
+    padding: .5rem .75rem .2rem;
+    opacity: .6;
+  }
+
+  .folder-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: .28rem .75rem;
+    cursor: pointer;
+    font-size: .68rem;
+    color: var(--text-dim);
+    border-left: 2px solid transparent;
+    transition: all .15s;
+    gap: .3rem;
+  }
+
+  .folder-item:hover {
+    background: rgba(255,255,255,.04);
+    color: var(--text);
+  }
+
+  .folder-item.active {
+    background: rgba(0,212,255,.08);
+    border-left-color: var(--accent);
+    color: var(--accent);
+  }
+
+  .folder-item .folder-name {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .folder-item .folder-count {
+    font-size: .58rem;
+    opacity: .5;
+    flex-shrink: 0;
+  }
+
+  .folder-del-btn {
+    display: none;
+    background: none;
+    border: none;
+    color: var(--red, #f87171);
+    cursor: pointer;
+    font-size: .65rem;
+    padding: 0 .15rem;
+    opacity: .6;
+    flex-shrink: 0;
+    line-height: 1;
+  }
+
+  .folder-del-btn:hover { opacity: 1; }
+  .folder-item:hover .folder-del-btn { display: block; }
+
+  .folder-item.sub {
+    padding-left: 1.2rem;
+    font-size: .64rem;
+  }
+
+  .gallery-wrap {
+    flex: 1;
+    min-width: 0;
+  }
+
+  /* ── SCAN PANEL ── */
+  .scan-panel {
+    width: 260px;
+    min-width: 260px;
+    background: var(--surface);
+    border-left: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    position: sticky;
+    top: 0;
+    max-height: calc(100vh - 120px);
+    overflow: hidden;
+  }
+
+  .scan-panel-header {
+    padding: .5rem .75rem;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+  }
+
+  .scan-panel-title {
+    font-size: .62rem;
+    color: var(--dim);
+    text-transform: uppercase;
+    letter-spacing: .07em;
+  }
+
+  .scan-panel-body {
+    flex: 1;
+    overflow-y: auto;
+    font-size: .64rem;
+  }
+
+  .scan-dir-group {
+    border-bottom: 1px solid rgba(255,255,255,.04);
+  }
+
+  .scan-dir-label {
+    padding: .3rem .75rem;
+    background: rgba(255,255,255,.03);
+    color: var(--dim);
+    font-size: .58rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    user-select: none;
+  }
+
+  .scan-dir-label:hover { background: rgba(255,255,255,.06); }
+
+  .scan-file-item {
+    padding: .2rem .75rem .2rem 1.2rem;
+    display: flex;
+    align-items: center;
+    gap: .4rem;
+    cursor: pointer;
+    border-left: 2px solid transparent;
+    transition: all .1s;
+  }
+
+  .scan-file-item:hover { background: rgba(0,212,255,.05); border-left-color: var(--accent); }
+  .scan-file-item.selected { background: rgba(0,212,255,.1); border-left-color: var(--accent); }
+
+  .scan-file-icon { flex-shrink: 0; font-size: .7rem; }
+  .scan-file-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); }
+  .scan-file-size { font-size: .56rem; color: var(--dim); flex-shrink: 0; }
+
+  .scan-panel-footer {
+    padding: .4rem .75rem;
+    border-top: 1px solid var(--border);
+    display: flex;
+    gap: .4rem;
+    flex-shrink: 0;
+  }
+
+  /* ── GRID ── */
+  .gallery {
+    padding: 20px 24px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 16px;
+  }
+
+  /* ── EMPTY STATE ── */
+  .empty-state {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 80px 20px;
+    gap: 14px;
+    color: var(--text-dim);
+  }
+
+  .empty-icon {
+    font-size: 48px;
+    opacity: 0.3;
+  }
+
+  .empty-label {
+    font-family: var(--sans);
+    font-size: 14px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+  }
+
+  /* ── CARD ── */
+  .card {
+    border: 1px solid var(--border);
+    background: var(--surface);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    animation: card-in 0.25s ease both;
+  }
+
+  .card:hover {
+    border-color: var(--border-hi);
+    box-shadow: 0 4px 24px rgba(0,0,0,0.4);
+  }
+
+  @keyframes card-in {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(0,0,0,0.3);
+    gap: 8px;
+  }
+
+  .card-id {
+    font-size: 10px;
+    color: var(--amber);
+    letter-spacing: 0.1em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .card-meta {
+    font-size: 9px;
+    color: var(--text-dim);
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .card-img-wrap {
+    position: relative;
+    width: 100%;
+    padding-bottom: 62.5%; /* 16:10 */
+    background: #04080c;
+    cursor: zoom-in;
+    overflow: hidden;
+  }
+
+  .card-img-wrap img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.3s ease;
+  }
+
+  .card:hover .card-img-wrap img {
+    transform: scale(1.04);
+  }
+
+  .card-img-wrap .img-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top, rgba(0,0,0,0.5) 0%, transparent 40%);
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+
+  .card:hover .card-img-wrap .img-overlay { opacity: 1; }
+
+  .card-actions {
+    display: flex;
+    border-top: 1px solid var(--border);
+  }
+
+  .card-btn {
+    flex: 1;
+    padding: 8px;
+    background: transparent;
+    border: none;
+    border-right: 1px solid var(--border);
+    color: var(--text-dim);
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+  }
+
+  .card-btn:last-child { border-right: none; }
+
+  .card-btn:hover { background: rgba(255,255,255,0.04); color: var(--text); }
+
+  .video-badge {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: rgba(0,0,0,0.75);
+    color: #f59e0b;
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 3px;
+    letter-spacing: 0.1em;
+    pointer-events: none;
+  }
+
+  .card-img-wrap video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .lightbox-video {
+    max-width: 90vw;
+    max-height: 80vh;
+    width: auto;
+    outline: none;
+  }
+
+  .card-btn.del-btn:hover {
+    background: rgba(192,57,43,0.12);
+    color: var(--red);
+  }
+
+  .card.deleting {
+    opacity: 0.3;
+    pointer-events: none;
+    transform: scale(0.97);
+    transition: all 0.3s;
+  }
+
+  /* ── LIGHTBOX ── */
+  .lightbox {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.92);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+    animation: lb-in 0.2s ease;
+    cursor: zoom-out;
+  }
+
+  .lightbox.open { display: flex; }
+
+  @keyframes lb-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+
+  .lightbox img {
+    max-width: 90vw;
+    max-height: 88vh;
+    object-fit: contain;
+    border: 1px solid var(--border-hi);
+    box-shadow: 0 0 60px rgba(0,0,0,0.8);
+  }
+
+  .lightbox-close {
+    position: fixed;
+    top: 20px;
+    right: 24px;
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    font-family: var(--mono);
+    font-size: 12px;
+    padding: 6px 12px;
+    cursor: pointer;
+    z-index: 1001;
+    letter-spacing: 0.15em;
+  }
+
+  .lightbox-close:hover { color: var(--text); border-color: var(--border-hi); }
+
+  .lightbox-label {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 0.15em;
+  }
+
+  /* ── SPINNER ── */
+  .spinner {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border: 1px solid var(--text-dim);
+    border-top-color: var(--amber);
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── SCROLLBAR ── */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border-hi); }
+  ::-webkit-scrollbar-thumb:hover { background: #3a5060; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <span class="brand-node">BLACKWELL-NODE-01</span>
+    <span class="brand-sub">// Image Vault</span>
+  </div>
+  <div class="header-status">
+    <div class="count-badge"><span id="img-count">0</span> FILES IN VAULT</div>
+    <div class="count-badge" style="font-size:10px;color:var(--text-dim)"><span id="container-count">—</span></div>
+    <div class="count-badge" style="font-size:10px;color:#00d4ff;margin-left:.5rem;display:none" id="autopoll-status-wrap">
+      <span id="autopoll-status">⏱ —</span>
+    </div>
+    <div class="count-badge" style="font-size:10px;color:var(--text-dim);margin-left:.5rem" id="input-count-wrap" style="display:none">
+      <span id="input-count">—</span>
+    </div>
+    <div class="capture-toggle" id="capture-toggle" onclick="toggleCapture()">
+      <div class="toggle-dot"></div>
+      <span class="toggle-label" id="toggle-label">CAPTURE OFF</span>
+    </div>
+  </div>
+</header>
+
+<div class="toolbar">
+  <span class="toolbar-label">Actions</span>
+
+  <button class="btn btn-amber" onclick="fetchLatest()">
+    <span class="btn-icon">⬇</span> Get Latest
+  </button>
+
+  <button class="btn btn-amber" onclick="fetchRandom()">
+    <span class="btn-icon">⚄</span> Fetch Random
+  </button>
+  <div id="input-controls" style="display:none;margin-left:.5rem;display:inline-flex;gap:.4rem;">
+    <button class="btn" id="btn-input-latest" onclick="fetchInputLatest()" title="Pull latest training input image">
+      <span class="btn-icon">🗂</span> Input Latest
+    </button>
+    <button class="btn" id="btn-input-random" onclick="fetchInputRandom()" title="Pull random training input image">
+      <span class="btn-icon">⚄</span> Input Random
+    </button>
+    <button class="btn btn-green" id="btn-copy-all" onclick="copyAllInputs()" title="Copy all images from active container to vault">
+      <span class="btn-icon">📂</span> Copy All
+    </button>
+    <button class="btn" id="btn-autopoll" onclick="toggleAutoPoll()" title="Auto-copy new images from container every 30s"
+      style="background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.15);color:var(--text-dim);">
+      <span class="btn-icon">⏱</span> <span id="autopoll-label">Auto OFF</span>
+    </button>
+  </div>
+
+  <span style="margin-left:auto;display:flex;align-items:center;gap:.5rem;font-size:.65rem;">
+    <span class="log-ts" id="log-ts" style="color:var(--amber-dim);font-family:var(--mono);">--:--:--</span>
+    <span class="log-entry" id="log-entry" style="color:var(--text-dim);">READY</span>
+  </span>
+  <button class="btn btn-red" onclick="showMasterDeleteConfirm();">
+    <span class="btn-icon">✕</span> Master Delete
+  </button>
+  <button class="btn btn-amber" onclick="refreshGallery()">
+    <span class="btn-icon">↺</span> Refresh
+  </button>
+
+    </div><!-- gallery-wrap -->
+
+</div><!-- vault-layout -->
+
+<div id="import-dir-wrap" style="display:flex;align-items:center;gap:.5rem;padding:.4rem .75rem;background:rgba(255,255,255,.02);border-bottom:1px solid var(--border);">
+  <span style="font-size:.62rem;color:var(--dim);text-transform:uppercase;letter-spacing:.06em;white-space:nowrap;">📁 Import Dir</span>
+  <input id="import-dir-path" type="text" placeholder="/path/to/directory"
+    style="flex:1;background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:3px;padding:.25rem .5rem;font-size:.7rem;color:var(--text);font-family:var(--mono);outline:none;"
+    onkeydown="if(event.key==='Enter') importDir()">
+  <input id="import-dir-container" type="text" placeholder="Container (e.g. C.12345678)"
+    style="width:160px;background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:3px;padding:.25rem .5rem;font-size:.7rem;color:var(--text);font-family:var(--mono);outline:none;"
+    onkeydown="if(event.key==='Enter') importDir()">
+  <button class="btn btn-amber" onclick="importDir()" style="white-space:nowrap;font-size:.65rem;padding:.25rem .6rem;">
+    <span class="btn-icon">⬇</span> Import
+  </button>
+  <span id="import-dir-status" style="font-size:.62rem;color:var(--dim);"></span>
+</div>
+
+<div id="output-folders-wrap" style="display:none;margin-top:1.5rem;">
+  <div style="font-size:.65rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:.08em;margin-bottom:.5rem;">🖼 Saved Output Datasets</div>
+  <div id="output-folders-list" style="display:flex;flex-wrap:wrap;gap:.4rem;"></div>
+</div>
+<div id="input-folders-wrap" style="display:none;margin-top:1.5rem;">
+  <div style="font-size:.65rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:.08em;margin-bottom:.5rem;">📂 Saved Input Datasets</div>
+  <div id="input-folders-list" style="display:flex;flex-wrap:wrap;gap:.4rem;"></div>
+</div>
+</div>
+
+<div class="confirm-bar" id="confirm-bar">
+  <span class="confirm-text">⚠ MASTER DELETE — This will hard-delete all images from server storage and purge browser cache. Irreversible.</span>
+  <button class="btn btn-danger" onclick="executeMasterDelete()">CONFIRM DELETE ALL</button>
+  <button class="btn" onclick="cancelMasterDelete()">CANCEL</button>
+</div>
+
+
+<div class="vault-layout">
+  <div class="folder-sidebar" id="folder-sidebar">
+    <div class="folder-sidebar-title">📁 Folders</div>
+    <div id="folder-tree">
+      <div class="folder-item active" onclick="setFolderFilter(null)" id="folder-all">
+        <span class="folder-name">All Images</span>
+        <span class="folder-count" id="folder-all-count">—</span>
+      </div>
+    </div>
+  </div>
+  <div class="gallery-wrap">
+<div class="gallery" id="gallery">
+  <div class="empty-state">
+    <div class="empty-icon">◫</div>
+    <div class="empty-label">No images stored</div>
+    <div style="font-size:11px; color: var(--text-dim); margin-top:4px;">Enable capture and run a ComfyUI container</div>
+  </div>
+</div>
+
+  </div><!-- gallery-wrap -->
+
+  <!-- ── Right: Container Scan Panel ── -->
+  <div class="scan-panel" id="scan-panel">
+    <div class="scan-panel-header">
+      <span class="scan-panel-title">🔍 Container Scan</span>
+      <select id="scan-mode-select" onchange="setScanMode(this.value)"
+        style="font-size:.58rem;padding:.1rem .3rem;background:#0d1117;border:1px solid #2a3a4a;color:#c8d8e8;border-radius:3px;cursor:pointer;margin-right:.3rem;">
+        <option value="docker">🐳 Docker</option>
+        <option value="ghost">👻 Ghost</option>
+      </select>
+      <button onclick="runScan()" id="btn-scan"
+        style="font-size:.58rem;padding:.15rem .4rem;background:rgba(0,212,255,.1);border:1px solid rgba(0,212,255,.3);color:var(--accent);border-radius:3px;cursor:pointer;">
+        ↺ Scan
+      </button>
+    </div>
+    <div id="scan-status" style="padding:.4rem .75rem;font-size:.62rem;color:var(--dim);flex-shrink:0;">
+      No active container
+    </div>
+    <div class="scan-panel-body" id="scan-body"></div>
+    <div class="scan-panel-footer">
+      <button onclick="importSelected()" id="btn-import-selected"
+        style="flex:1;font-size:.62rem;padding:.25rem;background:rgba(0,212,255,.1);border:1px solid rgba(0,212,255,.3);color:var(--accent);border-radius:3px;cursor:pointer;display:none;">
+        ⬇ Import Selected
+      </button>
+      <button onclick="importAllScanned()" id="btn-import-all"
+        style="flex:1;font-size:.62rem;padding:.25rem;background:rgba(52,211,153,.1);border:1px solid rgba(52,211,153,.3);color:#34d399;border-radius:3px;cursor:pointer;display:none;">
+        ⬇ Import All
+      </button>
+      <button onclick="deleteSelectedOnGhost()" id="btn-delete-ghost"
+        style="flex:1;font-size:.62rem;padding:.25rem;background:rgba(192,57,43,.1);border:1px solid rgba(192,57,43,.4);color:#f87171;border-radius:3px;cursor:pointer;display:none;">
+        ✕ Delete on Ghost
+      </button>
+    </div>
+  </div>
+
+</div><!-- vault-layout -->
+
+<div class="lightbox" id="lightbox" onclick="closeLightbox()">
+  <button class="lightbox-close" onclick="closeLightbox()">ESC / CLOSE</button>
+  <img id="lightbox-img" src="" alt="">
+  <div class="lightbox-label" id="lightbox-label"></div>
+</div>
+
+<script>
+const API = '';  // same origin
+let _scanMode = 'docker';  // 'docker' | 'ghost'
+
+// ── LOGGING ──
+function log(msg, type = 'inf') {
+  const now = new Date();
+  const ts = now.toTimeString().slice(0, 8);
+  document.getElementById('log-ts').textContent = ts;
+  const el = document.getElementById('log-entry');
+  el.className = `log-entry log-${type} visible`;
+  el.textContent = msg;
+  clearTimeout(window._logTimer);
+  window._logTimer = setTimeout(() => el.classList.remove('visible'), 6000);
+}
+
+// ── TOGGLE ──
+let captureEnabled = false;
+
+async function loadToggleState() {
+  try {
+    const r = await fetch(`${API}/api/images/toggle`, {cache: 'no-store'});
+    const d = await r.json();
+    captureEnabled = d.enabled;
+    updateToggleUI();
+  } catch(e) { log('Failed to load toggle state', 'err'); }
+}
+
+function updateToggleUI() {
+  const el = document.getElementById('capture-toggle');
+  const label = document.getElementById('toggle-label');
+  if (captureEnabled) {
+    el.classList.add('enabled');
+    label.textContent = 'CAPTURE ON';
+  } else {
+    el.classList.remove('enabled');
+    label.textContent = 'CAPTURE OFF';
+  }
+}
+
+async function toggleCapture() {
+  captureEnabled = !captureEnabled;
+  try {
+    await fetch(`${API}/api/images/toggle`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({enabled: captureEnabled}),
+      cache: 'no-store'
+    });
+    updateToggleUI();
+    log(`Image capture ${captureEnabled ? 'ENABLED' : 'DISABLED'}`, captureEnabled ? 'ok' : 'inf');
+  } catch(e) {
+    captureEnabled = !captureEnabled; // revert
+    log('Toggle failed', 'err');
+  }
+}
+
+// ── GALLERY ──
+let images = [];
+
+async function refreshGallery() {
+  log('Refreshing...', 'inf');
+  try {
+    const r = await fetch(`${API}/api/images/list`, {cache: 'no-store'});
+    const d = await r.json();
+    images = d.images || [];
+    document.getElementById('img-count').textContent = images.length;
+    renderGallery();
+    log(`${images.length} file${images.length !== 1 ? 's' : ''} in vault`, 'ok');
+    // Update container file count badge
+    try {
+      const rc = await fetch('/api/images/active-container', {cache:'no-store'});
+      if (rc.ok) {
+        const dc = await rc.json();
+          updateInputControls(dc);
+        if (dc.name) {
+          const rs = await fetch(`/api/images/container-stats/${dc.name}`, {cache:'no-store'});
+          if (rs.ok) {
+            const ds = await rs.json();
+            const el = document.getElementById('container-count');
+            if (el) el.textContent = `${dc.name}: ${ds.file_count} files in container`;
+          }
+        }
+      }
+    } catch(e) {}
+  } catch(e) {
+    log('Failed to load images', 'err');
+  }
+  autoFillImportContainer();
+}
+
+function renderGallery() {
+  buildFolderTree(images);
+  const filtered = filterImages(images);
+  const gallery = document.getElementById('gallery');
+  if (filtered.length === 0) {
+    gallery.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">◫</div>
+        <div class="empty-label">No images stored</div>
+        <div style="font-size:11px;color:var(--text-dim);margin-top:4px;">Enable capture and run a ComfyUI container</div>
+      </div>`;
+    return;
+  }
+
+  gallery.innerHTML = filtered.map((img, i) => {
+    const date = new Date(img.mtime * 1000);
+    const dateStr = date.toLocaleDateString('en-NZ', {month:'short', day:'numeric'}) + ' ' +
+                    date.toTimeString().slice(0,5);
+    const sizeStr = img.size > 1024*1024
+      ? (img.size / (1024*1024)).toFixed(1) + 'MB'
+      : Math.round(img.size / 1024) + 'KB';
+
+    return `
+    <div class="card" id="card-${i}" data-filename="${img.filename}" style="animation-delay:${i * 0.04}s">
+      <div class="card-header">
+        <span class="card-id">${img.container}</span>${img.input_type === 'training' ? ' <span style="font-size:.6rem;background:rgba(251,191,36,.2);color:#fbbf24;border-radius:3px;padding:.05rem .3rem;margin-left:.2rem;">📂 input</span>' :
+         img.input_type === 'output' ? ' <span style="font-size:.6rem;background:rgba(0,212,255,.2);color:var(--accent);border-radius:3px;padding:.05rem .3rem;margin-left:.2rem;">🖼 output</span>' : ''}
+        <span class="card-meta" title="${img.filename}">${dateStr} · ${sizeStr}</span>
+      </div>
+      <div class="card-img-wrap" style="position:relative" onclick="${img.is_video ? `openVideoLightbox('${img.url}','${img.container}')` : `openLightbox('${img.thumb_url||img.url}','${img.container}')`}">
+        <img src="${img.thumb_url || img.url}" alt="${img.container}" loading="lazy">
+        ${img.is_video ? '<span class="video-badge">▶ MP4</span>' : ''}
+        <div class="img-overlay">${img.is_video ? 'PLAY' : 'VIEW'}</div>
+      </div>
+      <div class="card-actions">
+        <button class="card-btn" onclick="${img.is_video ? `openVideoLightbox('${img.url}','${img.container}')` : `openLightbox('${img.url}','${img.container}')`}">
+          ${img.is_video ? '▶ PLAY' : '⤢ VIEW'}
+        </button>
+        <button class="card-btn" onclick="downloadImage('${img.url}', '${img.filename}')">
+          ↓ SAVE
+        </button>
+        ${img.ghost_path ? `<button class="card-btn del-btn" onclick="deleteGhostFile('${img.filename}', '${img.ghost_path}', ${i})" title="Delete local copy + ghost original" style="color:#f87171;">🗑 GHOST</button>` : `<button class="card-btn del-btn" onclick="deleteSingle('${img.filename}', ${i})">✕ DELETE</button>`}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── DELETE SINGLE ──
+async function deleteSingle(filename, idx) {
+  const card = document.getElementById(`card-${idx}`);
+  card.classList.add('deleting');
+  log(`Deleting ${filename}...`, 'inf');
+
+  try {
+    await purgeFromBrowserCache(`/api/images/file/${filename}`);
+    const r = await fetch(`${API}/api/images/delete/${filename}`, {
+      method: 'DELETE', cache: 'no-store'
+    });
+    if (!r.ok) throw new Error(await r.text());
+    log(`Deleted: ${filename}`, 'ok');
+    await refreshGallery();
+  } catch(e) {
+    card.classList.remove('deleting');
+    log(`Delete failed: ${e.message}`, 'err');
+  }
+}
+
+// ── MASTER DELETE ──
+function showMasterDeleteConfirm() {
+  document.getElementById('confirm-bar').classList.add('visible');
+  log('Confirm master delete or cancel', 'err');
+}
+
+function cancelMasterDelete() {
+  document.getElementById('confirm-bar').classList.remove('visible');
+  log('Master delete cancelled', 'inf');
+}
+
+async function executeMasterDelete() {
+  document.getElementById('confirm-bar').classList.remove('visible');
+  log('EXECUTING MASTER DELETE...', 'err');
+
+  // 1. Purge all known image URLs from browser cache
+  for (const img of images) {
+    await purgeFromBrowserCache(`/api/images/file/${img.filename}`);
+  }
+
+  // 2. Clear ALL caches (Cache API)
+  try {
+    const cacheNames = await caches.keys();
+    await Promise.all(cacheNames.map(name => caches.delete(name)));
+  } catch(e) { /* Cache API may not be available */ }
+
+  // 3. Delete from server
+  try {
+    const r = await fetch(`${API}/api/images/delete-all`, {
+      method: 'DELETE', cache: 'no-store'
+    });
+    const d = await r.json();
+    log(`MASTER DELETE COMPLETE — ${d.count} images purged from server + browser cache`, 'ok');
+    await refreshGallery();
+  } catch(e) {
+    log(`Master delete failed: ${e.message}`, 'err');
+  }
+}
+
+// ── BROWSER CACHE PURGE ──
+async function purgeFromBrowserCache(url) {
+  try {
+    // Cache Storage API
+    const cacheNames = await caches.keys();
+    for (const name of cacheNames) {
+      const cache = await caches.open(name);
+      await cache.delete(url);
+    }
+  } catch(e) { /* not available in all contexts */ }
+
+  // Force reload with new URL to bust HTTP cache entry
+  // (We serve images with no-cache headers, so this is belt-and-suspenders)
+}
+
+// ── FETCH LATEST ──
+async function fetchLatest() {
+  log('Scanning for running ComfyUI containers...', 'inf');
+  const btn = event.target.closest('.btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> FETCHING...';
+
+  try {
+    const r = await fetch('/api/images/active-container', {cache: 'no-store'});
+    if (!r.ok) throw new Error('No active ComfyUI container found');
+    const d = await r.json();
+    if (!d.name) throw new Error('No active ComfyUI container found');
+    log('Found active container: ' + d.name, 'inf');
+    await doFetchLatest(d.name);
+  } catch(e) {
+    log(e.message, 'err');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<span class="btn-icon">⬇</span> Get Latest Image';
+  }
+}
+
+async function doFetchLatest(containerName) {
+  log(`Pulling latest image from ${containerName}...`, 'inf');
+  const r = await fetch(`${API}/api/images/fetch-latest/${containerName}`, {
+    method: 'POST', cache: 'no-store'
+  });
+  if (!r.ok) {
+    const d = await r.json().catch(() => ({}));
+    throw new Error(d.error || `HTTP ${r.status}`);
+  }
+  const d = await r.json();
+  log(`Saved: ${d.filename || d.saved}`, 'ok');
+  await refreshGallery();
+}
+
+// ── FETCH RANDOM ──
+async function fetchRandom() {
+  const btn = event.target.closest('.btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> PICKING...';
+  try {
+    const r = await fetch('/api/images/active-container', {cache: 'no-store'});
+    if (!r.ok) throw new Error('No active container found');
+    const d = await r.json();
+    if (!d.name) throw new Error('No active container found');
+    log(`Fetching random file from ${d.name}...`, 'inf');
+    const r2 = await fetch(`${API}/api/images/fetch-random/${d.name}`, {
+      method: 'POST', cache: 'no-store'
+    });
+    if (!r2.ok) {
+      const e2 = await r2.json().catch(() => ({}));
+      throw new Error(e2.error || `HTTP ${r2.status}`);
+    }
+    const d2 = await r2.json();
+    log(`Random: ${d2.source}`, 'ok');
+    await refreshGallery();
+  } catch(e) {
+    log(e.message, 'err');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<span class="btn-icon">⚄</span> Fetch Random';
+  }
+}
+
+// ── LIGHTBOX ──
+function openVideoLightbox(url, label) {
+  // Remove any existing video
+  const lb = document.getElementById('lightbox');
+  lb.querySelectorAll('._lb_vid').forEach(e => { e.pause(); e.remove(); });
+  // Hide the static image
+  const img = document.getElementById('lightbox-img');
+  if (img) img.style.display = 'none';
+  // Create video
+  const vid = document.createElement('video');
+  vid.className = '_lb_vid';
+  vid.src = url;
+  vid.controls = true;
+  vid.autoplay = true;
+  vid.loop = true;
+  vid.style.cssText = 'max-width:90vw;max-height:80vh;display:block;margin:auto;border:1px solid #2a3a4a;outline:none;';
+  lb.appendChild(vid);
+  if (label) { const lbl = document.getElementById('lightbox-label'); if(lbl) lbl.textContent = label; }
+  lb.classList.add('open');
+}
+
+function openLightbox(url, label) {
+  // Stop any video
+  const lb = document.getElementById('lightbox');
+  lb.querySelectorAll('._lb_vid').forEach(e => { e.pause(); e.remove(); });
+  const img = document.getElementById('lightbox-img');
+  if (img) img.style.display = '';
+  img.src = url + '&nocache=' + Date.now();
+  document.getElementById('lightbox-label').textContent = label;
+  lb.classList.add('open');
+}
+
+function closeLightbox() {
+  const lb = document.getElementById('lightbox');
+  lb.classList.remove('open');
+  lb.querySelectorAll('._lb_vid').forEach(e => { e.pause(); e.src=''; e.remove(); });
+  const img = document.getElementById('lightbox-img');
+  if (img) { img.style.display = ''; img.src = ''; }
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeLightbox();
+});
+
+// ── DOWNLOAD ──
+function downloadImage(url, filename) {
+  const a = document.createElement('a');
+  a.href = url + '&dl=1';
+  a.download = filename;
+  a.click();
+  log(`Download started: ${filename}`, 'ok');
+}
+
+// ── INIT ──
+(async function init() {
+  await loadToggleState();
+  await refreshGallery();
+  loadAutoPollState();
+  autoFillImportContainer();
+  autoScanIfActive();
+})();
+
+// Auto-refresh every 60s
+setInterval(refreshGallery, 60000);
+
+// ── Training Input Images ────────────────────────────────────────────────
+let _activeContainerType = 'generic';
+
+async function updateInputControls(containerData) {
+  _activeContainerType = containerData?.container_type || 'generic';
+  const wrap = document.getElementById('input-controls');
+  const countWrap = document.getElementById('input-count-wrap');
+  if (_activeContainerType === 'training' || _activeContainerType === 'comfyui' || _activeContainerType === 'inference' || _activeContainerType === 'generic') {
+    if (wrap) wrap.style.display = 'inline-flex';
+    // fetch input stats
+    if (containerData?.name) {
+      try {
+        const r = await fetch(`/api/images/input-stats/${containerData.name}`, {cache:'no-store'});
+        const d = await r.json();
+        if (countWrap) {
+          countWrap.style.display = '';
+          const el = document.getElementById('input-count');
+          if (el) el.textContent = `📂 ${d.input_count} training inputs`;
+        }
+      } catch(e) {}
+    }
+  } else {
+    if (wrap) wrap.style.display = 'none';
+    if (countWrap) countWrap.style.display = 'none';
+  }
+}
+
+async function fetchInputLatest() {
+  const btn = document.getElementById('btn-input-latest');
+  const r = await fetch('/api/images/active-container', {cache:'no-store'});
+  if (!r.ok) { log('No active container', 'err'); return; }
+  const d = await r.json();
+  if (!d.name) { log('No active container', 'err'); return; }
+  if (btn) { btn.disabled = true; btn.innerHTML = '<span class="btn-icon">⏳</span> Fetching...'; }
+  try {
+    const r2 = await fetch(`/api/images/fetch-input-latest/${d.name}`, {method:'POST', cache:'no-store'});
+    const d2 = await r2.json();
+    if (d2.error) { log('Input fetch error: ' + d2.error, 'err'); }
+    else { log(`Input: ${d2.source}`, 'ok'); await loadImages();
+  await loadInputFolders();
+  await loadOutputFolders(); }
+  } catch(e) { log('Input fetch failed', 'err'); }
+  if (btn) { btn.disabled = false; btn.innerHTML = '<span class="btn-icon">🗂</span> Input Latest'; }
+}
+
+async function fetchInputRandom() {
+  const btn = document.getElementById('btn-input-random');
+  const r = await fetch('/api/images/active-container', {cache:'no-store'});
+  if (!r.ok) { log('No active container', 'err'); return; }
+  const d = await r.json();
+  if (!d.name) { log('No active container', 'err'); return; }
+  if (btn) { btn.disabled = true; btn.innerHTML = '<span class="btn-icon">⏳</span> Fetching...'; }
+  try {
+    const r2 = await fetch(`/api/images/fetch-input-random/${d.name}`, {method:'POST', cache:'no-store'});
+    const d2 = await r2.json();
+    if (d2.error) { log('Input fetch error: ' + d2.error, 'err'); }
+    else { log(`Input: ${d2.source}`, 'ok'); await loadImages(); }
+  } catch(e) { log('Input fetch failed', 'err'); }
+  if (btn) { btn.disabled = false; btn.innerHTML = '<span class="btn-icon">⚄</span> Input Random'; }
+}
+
+
+async function copyAllInputs() {
+  const btn = document.getElementById('btn-copy-all');
+  const r = await fetch('/api/images/active-container', {cache:'no-store'});
+  if (!r.ok) { log('No active container', 'err'); return; }
+  const d = await r.json();
+  if (!d.name) { log('No active container', 'err'); return; }
+  const isTraining = d.container_type === 'training';
+  const endpoint = isTraining
+    ? `/api/images/copy-all-inputs/${d.name}`
+    : `/api/images/copy-all-outputs/${d.name}`;
+  const label = isTraining ? 'inputs' : 'outputs';
+  if (btn) { btn.disabled = true; btn.innerHTML = '<span class="btn-icon">⏳</span> Copying...'; }
+  log(`Copying all ${label} from ${d.name}...`, 'inf');
+  try {
+    const r2 = await fetch(endpoint, {method:'POST', cache:'no-store'});
+    const d2 = await r2.json();
+    if (d2.error) {
+      log('Copy error: ' + d2.error, 'err');
+    } else {
+      log(`✓ Copied ${d2.copied}/${d2.total} ${label} to vault (${d2.failed} failed)`, 'ok');
+      await loadImages();
+      await loadInputFolders();
+      await loadOutputFolders();
+    }
+  } catch(e) { log('Copy failed: ' + e, 'err'); }
+  if (btn) { btn.disabled = false; btn.innerHTML = '<span class="btn-icon">📂</span> Copy All'; }
+}
+
+async function loadOutputFolders() {
+  try {
+    const r = await fetch('/api/images/list-output-folders', {cache:'no-store'});
+    const d = await r.json();
+    const wrap = document.getElementById('output-folders-wrap');
+    const list = document.getElementById('output-folders-list');
+    if (!wrap || !list) return;
+    if (d.folders && d.folders.length > 0) {
+      wrap.style.display = '';
+      list.innerHTML = d.folders.map(f =>
+        `<div style="background:rgba(0,212,255,.08);border:1px solid rgba(0,212,255,.2);border-radius:5px;padding:.3rem .6rem;font-size:.68rem;cursor:pointer;"
+              onclick="setFolderFilter('output:${f.name}');window.scrollTo({top:0,behavior:'smooth'})">
+          <span style="color:var(--accent);font-weight:600;">${f.name}</span>
+          <span style="color:var(--text-dim);margin-left:.4rem;">${f.count} files · ${f.size_mb} MB</span>
+        </div>`
+      ).join('');
+    } else {
+      wrap.style.display = 'none';
+    }
+  } catch(e) {}
+}
+
+async function loadInputFolders() {
+  try {
+    const r = await fetch('/api/images/list-input-folders', {cache:'no-store'});
+    const d = await r.json();
+    const wrap = document.getElementById('input-folders-wrap');
+    const list = document.getElementById('input-folders-list');
+    if (!wrap || !list) return;
+    if (d.folders && d.folders.length > 0) {
+      wrap.style.display = '';
+      list.innerHTML = d.folders.map(f =>
+        `<div style="background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.2);border-radius:5px;padding:.3rem .6rem;font-size:.68rem;cursor:pointer;"
+              onclick="setFolderFilter('input:${f.name}');window.scrollTo({top:0,behavior:'smooth'})">
+          <span style="color:#fbbf24;font-weight:600;">${f.name}</span>
+          <span style="color:var(--text-dim);margin-left:.4rem;">${f.count} files · ${f.size_mb} MB</span>
+        </div>`
+      ).join('');
+    } else {
+      wrap.style.display = 'none';
+    }
+  } catch(e) {}
+}
+
+
+// ── Auto-Poll Image Copying ──────────────────────────────────────────────────
+let _autoPollEnabled = false;
+let _autoPollInterval = null;
+let _autoPollCountdown = null;
+let _autoPollSeen = new Set();   // filenames already copied this session
+const AUTOPOLL_SECS = 30;
+
+function toggleAutoPoll() {
+  _autoPollEnabled = !_autoPollEnabled;
+  localStorage.setItem('autopoll', _autoPollEnabled ? '1' : '0');
+  updateAutoPollUI();
+  if (_autoPollEnabled) {
+    log('Auto-poll ON — copying new images every 30s', 'ok');
+    autoPollTick();  // run immediately
+    startAutoPollTimer();
+  } else {
+    stopAutoPollTimer();
+    log('Auto-poll OFF', 'inf');
+  }
+}
+
+function updateAutoPollUI() {
+  const btn = document.getElementById('btn-autopoll');
+  const lbl = document.getElementById('autopoll-label');
+  const statusWrap = document.getElementById('autopoll-status-wrap');
+  if (!btn || !lbl) return;
+  if (_autoPollEnabled) {
+    btn.style.background = 'rgba(0,212,255,.15)';
+    btn.style.borderColor = 'rgba(0,212,255,.6)';
+    btn.style.color = 'var(--accent)';
+    lbl.textContent = 'Auto ON';
+    if (statusWrap) statusWrap.style.display = '';
+  } else {
+    btn.style.background = 'rgba(255,255,255,.05)';
+    btn.style.borderColor = 'rgba(255,255,255,.15)';
+    btn.style.color = 'var(--text-dim)';
+    lbl.textContent = 'Auto OFF';
+    if (statusWrap) statusWrap.style.display = 'none';
+  }
+}
+
+function startAutoPollTimer() {
+  stopAutoPollTimer();
+  let remaining = AUTOPOLL_SECS;
+  const statusEl = document.getElementById('autopoll-status');
+  _autoPollCountdown = setInterval(() => {
+    remaining--;
+    if (statusEl) statusEl.textContent = `⏱ ${remaining}s`;
+    if (remaining <= 0) {
+      remaining = AUTOPOLL_SECS;
+      autoPollTick();
+    }
+  }, 1000);
+}
+
+function stopAutoPollTimer() {
+  if (_autoPollCountdown) { clearInterval(_autoPollCountdown); _autoPollCountdown = null; }
+  if (_autoPollInterval)  { clearInterval(_autoPollInterval);  _autoPollInterval = null; }
+  const statusEl = document.getElementById('autopoll-status');
+  if (statusEl) statusEl.textContent = '⏱ —';
+}
+
+async function autoPollTick() {
+  if (!_autoPollEnabled) return;
+  // Get active container
+  let dc;
+  try {
+    const r = await fetch('/api/images/active-container', {cache:'no-store'});
+    if (!r.ok) return;
+    dc = await r.json();
+    if (!dc || !dc.name) return;
+  } catch(e) { return; }
+
+  // Only poll image-relevant containers
+  const ctype = dc.container_type || 'generic';
+  const isImageContainer = ['training','comfyui','inference','generic'].includes(ctype);
+  if (!isImageContainer) return;
+
+  // Find new files in the container
+  const isTraining = ctype === 'training';
+  const statsEndpoint = isTraining
+    ? `/api/images/input-stats/${dc.name}`
+    : `/api/images/container-stats/${dc.name}`;
+
+  let newFiles = [];
+  try {
+    // Get file list from container to find new ones
+    const listEndpoint = isTraining
+      ? `/api/images/input-stats/${dc.name}`
+      : `/api/images/container-stats/${dc.name}`;
+    // Use copy endpoint which handles dedup on server — but track locally too
+    const copyEndpoint = isTraining
+      ? `/api/images/copy-all-inputs/${dc.name}`
+      : `/api/images/copy-all-outputs/${dc.name}`;
+
+    const r2 = await fetch(copyEndpoint, {method:'POST', cache:'no-store'});
+    const d2 = await r2.json();
+    if (d2.error) return;
+
+    if (d2.copied > 0) {
+      log(`⏱ Auto-poll: ${d2.copied} new file${d2.copied !== 1 ? 's' : ''} from ${dc.name}`, 'ok');
+      await refreshGallery();
+      await loadOutputFolders();
+      await loadInputFolders();
+    }
+    // Update status
+    const statusEl = document.getElementById('autopoll-status');
+    if (statusEl) {
+      const now = new Date();
+      const hhmm = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
+      statusEl.textContent = `⏱ ${hhmm} +${d2.copied}`;
+      setTimeout(() => { if (statusEl) statusEl.textContent = `⏱ ${AUTOPOLL_SECS}s`; }, 3000);
+    }
+  } catch(e) {}
+}
+
+// Load autopoll preference on init
+function loadAutoPollState() {
+  _autoPollEnabled = localStorage.getItem('autopoll') === '1';
+  updateAutoPollUI();
+  if (_autoPollEnabled) {
+    autoPollTick();
+    startAutoPollTimer();
+  }
+}
+
+
+// ── Folder Sidebar ───────────────────────────────────────────────────────────
+let _folderFilter = null;  // null = all, string = filter key
+
+function setFolderFilter(key) {
+  _folderFilter = key;
+  // Update active state
+  document.querySelectorAll('.folder-item').forEach(el => {
+    el.classList.toggle('active', el.dataset.key === (key || '__all__'));
+  });
+  renderGallery();
+}
+
+function buildFolderTree(images) {
+  const tree = document.getElementById('folder-tree');
+  if (!tree) return;
+
+  // Categorise images
+  const flat = {};      // container -> count (no subfolder)
+  const outputs = {};   // container -> count
+  const inputs = {};    // container -> count
+
+  images.forEach(img => {
+    if (img.input_type === 'output') {
+      outputs[img.container] = (outputs[img.container] || 0) + 1;
+    } else if (img.input_type === 'training') {
+      inputs[img.container] = (inputs[img.container] || 0) + 1;
+    } else if (img.input_type === 'sample' || !img.input_type) {
+      flat[img.container] = (flat[img.container] || 0) + 1;
+    }
+  });
+
+  // Update all-count
+  const allCount = document.getElementById('folder-all-count');
+  if (allCount) allCount.textContent = images.length;
+  const allItem = document.getElementById('folder-all');
+  if (allItem) allItem.dataset.key = '__all__';
+
+  // Build HTML
+  let html = `
+    <div class="folder-item active" onclick="setFolderFilter(null)" id="folder-all" data-key="__all__">
+      <span class="folder-name">All Images</span>
+      <span class="folder-count">${images.length}</span>
+    </div>`;
+
+  // Sample (fetched/random) files
+  const sampleKeys = Object.keys(flat).sort();
+  if (sampleKeys.length > 0) {
+    const allSampleActive = _folderFilter === 'all:sample' ? ' active' : '';
+    html += `<div class="folder-group-label folder-item${allSampleActive}" style="cursor:pointer;padding:.3rem .75rem;" onclick="setFolderFilter('all:sample')" data-key="all:sample">🎲 Samples <span style="opacity:.5;font-size:.6rem;">(all)</span></div>`;
+    sampleKeys.forEach(c => {
+      const key = `sample:${c}`;
+      const active = _folderFilter === key ? ' active' : '';
+      html += `<div class="folder-item${active}" onclick="setFolderFilter('${key}')" data-key="${key}">
+        <span class="folder-name" title="${c}">${c}</span>
+        <span class="folder-count">${flat[c]}</span>
+        <button class="folder-del-btn" onclick="event.stopPropagation();deleteFolderConfirm('sample','${c}')" title="Delete all samples for ${c}">✕</button>
+      </div>`;
+    });
+  }
+
+  // Output folders
+  const outKeys = Object.keys(outputs).sort();
+  if (outKeys.length > 0) {
+    const allOutputActive = _folderFilter === 'all:output' ? ' active' : '';
+    html += `<div class="folder-group-label folder-item${allOutputActive}" style="cursor:pointer;padding:.3rem .75rem;" onclick="setFolderFilter('all:output')" data-key="all:output">🖼 Outputs <span style="opacity:.5;font-size:.6rem;">(all)</span></div>`;
+    outKeys.forEach(c => {
+      const key = `output:${c}`;
+      const active = _folderFilter === key ? ' active' : '';
+      html += `<div class="folder-item sub${active}" onclick="setFolderFilter('${key}')" data-key="${key}">
+        <span class="folder-name" title="${c}">${c}</span>
+        <span class="folder-count">${outputs[c]}</span>
+        <button class="folder-del-btn" onclick="event.stopPropagation();deleteFolderConfirm('output','${c}')" title="Delete all output files for ${c}">✕</button>
+      </div>`;
+    });
+  }
+
+  // Input folders
+  const inKeys = Object.keys(inputs).sort();
+  if (inKeys.length > 0) {
+    const allInputActive = _folderFilter === 'all:input' ? ' active' : '';
+    html += `<div class="folder-group-label folder-item${allInputActive}" style="cursor:pointer;padding:.3rem .75rem;" onclick="setFolderFilter('all:input')" data-key="all:input">📂 Inputs <span style="opacity:.5;font-size:.6rem;">(all)</span></div>`;
+    inKeys.forEach(c => {
+      const key = `input:${c}`;
+      const active = _folderFilter === key ? ' active' : '';
+      html += `<div class="folder-item sub${active}" onclick="setFolderFilter('${key}')" data-key="${key}">
+        <span class="folder-name" title="${c}">${c}</span>
+        <span class="folder-count">${inputs[c]}</span>
+        <button class="folder-del-btn" onclick="event.stopPropagation();deleteFolderConfirm('input','${c}')" title="Delete all input files for ${c}">✕</button>
+      </div>`;
+    });
+  }
+
+  tree.innerHTML = html;
+
+  // Re-apply active filter highlight
+  if (_folderFilter) {
+    document.querySelectorAll('.folder-item').forEach(el => {
+      el.classList.toggle('active', el.dataset.key === _folderFilter);
+    });
+  }
+}
+
+function filterImages(images) {
+  if (!_folderFilter) return images;
+  const [type, container] = _folderFilter.split(':');
+  return images.filter(img => {
+    if (type === 'all') {
+      if (container === 'sample') return img.input_type === 'sample';
+      if (container === 'output') return img.input_type === 'output';
+      if (container === 'input')  return img.input_type === 'training';
+    }
+    if (type === 'sample') return img.input_type === 'sample'   && img.container === container;
+    if (type === 'output') return img.input_type === 'output'   && img.container === container;
+    if (type === 'input')  return img.input_type === 'training' && img.container === container;
+    return true;
+  });
+}
+
+
+// ── Folder Delete ────────────────────────────────────────────────────────────
+let _pendingFolderDelete = null;
+
+function deleteFolderConfirm(type, container) {
+  _pendingFolderDelete = {type, container};
+  // Ghost folder gets special prompt
+  if (type === 'sample' && container === 'ghost') {
+    deleteGhostFolderPrompt();
+    return;
+  }
+  const label = type === 'flat' ? container : `${type}/${container}`;
+  if (!confirm(`Delete all files in ${label}?\nThis cannot be undone.`)) {
+    _pendingFolderDelete = null;
+    return;
+  }
+  executeFolderDelete(type, container);
+}
+
+async function deleteGhostFolderPrompt() {
+  const choice = confirm(
+    'Delete ghost folder?\n\n' +
+    'OK = Delete local vault copies AND originals on Ghost VM\n' +
+    'Cancel = Delete local vault copies only'
+  );
+  // choice: true = also delete ghost, false = local only
+  // We use a second confirm for cancel = local only path
+  let alsoGhost = false;
+  if (choice) {
+    alsoGhost = true;
+  }
+  log(`Deleting ghost folder${alsoGhost ? ' + ghost originals' : ' (local only)'}...`, 'err');
+  try {
+    const r = await fetch('/api/images/delete-ghost-folder', {
+      method: 'DELETE',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({also_ghost: alsoGhost}),
+      cache: 'no-store'
+    });
+    const d = await r.json();
+    if (_folderFilter === 'sample:ghost') _folderFilter = null;
+    let msg = `Ghost folder: ${d.local_deleted} local deleted`;
+    if (alsoGhost) msg += `, ${d.ghost_deleted} ghost deleted, ${d.ghost_failed} failed`;
+    log(msg, d.ghost_failed > 0 ? 'err' : 'ok');
+    await refreshGallery();
+  } catch(e) {
+    log('Ghost folder delete failed: ' + e, 'err');
+  }
+  _pendingFolderDelete = null;
+}
+
+async function deleteGhostFile(filename, ghostPath, idx) {
+  if (!confirm(`Delete "${filename}" locally AND from Ghost VM?\n\nGhost path: ${ghostPath}\n\nThis cannot be undone.`)) return;
+  const card = document.getElementById(`card-${idx}`);
+  if (card) card.classList.add('deleting');
+  log(`Deleting ${filename} locally + ghost...`, 'err');
+  try {
+    const r = await fetch(`/api/images/delete-ghost-file/${filename}`, {
+      method: 'DELETE', cache: 'no-store'
+    });
+    const d = await r.json();
+    if (d.error) { log('Delete failed: ' + d.error, 'err'); if (card) card.classList.remove('deleting'); return; }
+    let msg = `Deleted ${filename} locally`;
+    if (d.ghost) msg += ' + ghost VM';
+    else if (d.ghost_path) msg += ` (ghost delete failed: ${d.ghost_error || 'unknown'})`;
+    log(msg, d.ghost ? 'ok' : 'err');
+    await refreshGallery();
+  } catch(e) {
+    if (card) card.classList.remove('deleting');
+    log('Delete failed: ' + e.message, 'err');
+  }
+}
+
+async function executeFolderDelete(type, container) {
+  log(`Deleting folder ${type}/${container}...`, 'err');
+  try {
+    const r = await fetch(`/api/images/delete-folder/${type}/${container}`, {
+      method: 'DELETE', cache: 'no-store'
+    });
+    const d = await r.json();
+    if (d.error) { log('Delete failed: ' + d.error, 'err'); return; }
+    if (_folderFilter === `${type}:${container}`) _folderFilter = null;
+    log(`Deleted ${d.count} file${d.count !== 1 ? 's' : ''} from ${type}/${container}`, 'ok');
+    await refreshGallery();
+    await loadOutputFolders();
+    await loadInputFolders();
+  } catch(e) {
+    log('Folder delete failed: ' + e, 'err');
+  }
+  _pendingFolderDelete = null;
+}
+
+
+// ── Directory Import ─────────────────────────────────────────────────────────
+async function importDir() {
+  const pathEl = document.getElementById('import-dir-path');
+  const containerEl = document.getElementById('import-dir-container');
+  const statusEl = document.getElementById('import-dir-status');
+  const btn = document.querySelector('[onclick="importDir()"]');
+
+  const path = pathEl ? pathEl.value.trim() : '';
+  let container = containerEl ? containerEl.value.trim() : '';
+
+  if (!path) { if (statusEl) statusEl.textContent = 'Enter a path'; return; }
+
+  // Auto-fill container from active if empty
+  if (!container) {
+    try {
+      const r = await fetch('/api/images/active-container', {cache:'no-store'});
+      const d = await r.json();
+      if (d.name) {
+        container = d.name;
+        if (containerEl) containerEl.value = container;
+      }
+    } catch(e) {}
+  }
+  if (!container) { if (statusEl) statusEl.textContent = 'No container — enter one manually'; return; }
+
+  if (btn) { btn.disabled = true; btn.innerHTML = '<span class="btn-icon">⏳</span> Importing...'; }
+  if (statusEl) statusEl.textContent = 'Importing...';
+
+  try {
+    const endpoint = _scanMode === 'ghost'
+      ? '/api/images/import-dir-ghost'
+      : '/api/images/import-dir';
+    const body = _scanMode === 'ghost'
+      ? JSON.stringify({path})
+      : JSON.stringify({path, container});
+    const r = await fetch(endpoint, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body
+    });
+    const d = await r.json();
+    if (d.error) {
+      if (statusEl) statusEl.style.color = 'var(--red)';
+      if (statusEl) statusEl.textContent = d.error;
+    } else {
+      if (statusEl) statusEl.style.color = 'var(--green)';
+      if (statusEl) statusEl.textContent = `✓ ${d.copied} copied, ${d.skipped} skipped, ${d.failed} failed`;
+      log(`Import from ${path}: ${d.copied} copied, ${d.skipped} skipped`, d.failed > 0 ? 'err' : 'ok');
+      await refreshGallery();
+      await loadInputFolders();
+      await loadOutputFolders();
+    }
+  } catch(e) {
+    if (statusEl) { statusEl.style.color = 'var(--red)'; statusEl.textContent = 'Request failed'; }
+  }
+  if (btn) { btn.disabled = false; btn.innerHTML = '<span class="btn-icon">⬇</span> Import'; }
+}
+
+// Auto-populate container field when active container is detected
+async function autoFillImportContainer() {
+  const containerEl = document.getElementById('import-dir-container');
+  if (!containerEl || containerEl.value) return;
+  try {
+    const r = await fetch('/api/images/active-container', {cache:'no-store'});
+    const d = await r.json();
+    if (d.name) containerEl.value = d.name;
+  } catch(e) {}
+}
+
+
+// ── Container Scan Panel ─────────────────────────────────────────────────────
+let _scanData = null;
+let _scanContainer = null;
+let _selectedFiles = new Set();
+
+function setScanMode(mode) {
+  _scanMode = mode;
+  _selectedFiles.clear();
+  _scanData = null;
+  const status = document.getElementById('scan-status');
+  const body = document.getElementById('scan-body');
+  const btnDelGhost = document.getElementById('btn-delete-ghost');
+  const btnImpAll = document.getElementById('btn-import-all');
+  const btnImpSel = document.getElementById('btn-import-selected');
+  if (body) body.innerHTML = '';
+  if (btnDelGhost) btnDelGhost.style.display = 'none';
+  if (btnImpAll) btnImpAll.style.display = 'none';
+  if (btnImpSel) btnImpSel.style.display = 'none';
+  if (mode === 'ghost') {
+    if (status) status.textContent = 'Ghost VM — enter path and click Scan';
+    // Pre-fill import dir path with a useful default
+    const pathEl = document.getElementById('import-dir-path');
+    if (pathEl && !pathEl.value) pathEl.value = '/root';
+  } else {
+    if (status) status.textContent = 'Select Docker container and click Scan';
+  }
+}
+
+function runScan() {
+  if (_scanMode === 'ghost') {
+    scanGhostVM();
+  } else {
+    scanActiveContainer();
+  }
+}
+
+async function scanGhostVM() {
+  const btn = document.getElementById('btn-scan');
+  const status = document.getElementById('scan-status');
+  const body = document.getElementById('scan-body');
+  const pathEl = document.getElementById('import-dir-path');
+  const scanPath = pathEl && pathEl.value.trim() ? pathEl.value.trim() : '/root /workspace /data';
+
+  _scanContainer = 'ghost';
+  _selectedFiles.clear();
+  if (btn) { btn.disabled = true; btn.textContent = '⏳'; }
+  if (status) status.textContent = `Scanning ghost:${scanPath}...`;
+  if (body) body.innerHTML = '';
+
+  try {
+    const r = await fetch(`/api/images/scan-ghost?path=${encodeURIComponent(scanPath)}`, {cache:'no-store'});
+    const d = await r.json();
+    if (d.error) { if (status) status.textContent = d.error; return; }
+    _scanData = d;
+    const dirCount = Object.keys(d.dirs).length;
+    if (status) status.textContent = `👻 ${d.total} files in ${dirCount} dirs`;
+    renderScanResults(d);
+    const btnDelGhost = document.getElementById('btn-delete-ghost');
+    const btnImpAll = document.getElementById('btn-import-all');
+    if (btnDelGhost) btnDelGhost.style.display = d.total > 0 ? '' : 'none';
+    if (btnImpAll) btnImpAll.style.display = d.total > 0 ? '' : 'none';
+  } catch(e) {
+    if (status) status.textContent = 'Ghost scan failed: ' + e.message;
+  }
+  if (btn) { btn.disabled = false; btn.textContent = '↺ Scan'; }
+}
+
+async function scanActiveContainer() {
+  const btn = document.getElementById('btn-scan');
+  const status = document.getElementById('scan-status');
+  const body = document.getElementById('scan-body');
+
+  let dc;
+  try {
+    const r = await fetch('/api/images/active-container', {cache:'no-store'});
+    dc = await r.json();
+  } catch(e) { return; }
+
+  if (!dc || !dc.name) {
+    if (status) status.textContent = 'No active container';
+    return;
+  }
+
+  _scanContainer = dc.name;
+  _selectedFiles.clear();
+  if (btn) { btn.disabled = true; btn.textContent = '⏳'; }
+  if (status) status.textContent = `Scanning ${dc.name}...`;
+  if (body) body.innerHTML = '';
+
+  try {
+    const r = await fetch(`/api/images/scan-container/${dc.name}`, {cache:'no-store'});
+    const d = await r.json();
+    if (d.error) { if (status) status.textContent = d.error; return; }
+    _scanData = d;
+    if (status) status.textContent = `${d.total} files in ${Object.keys(d.dirs).length} dirs`;
+    renderScanResults(d);
+    const impAll = document.getElementById('btn-import-all');
+    if (impAll) impAll.style.display = d.total > 0 ? '' : 'none';
+  } catch(e) {
+    if (status) status.textContent = 'Scan failed';
+  }
+  if (btn) { btn.disabled = false; btn.textContent = '↺ Scan'; }
+}
+
+function renderScanResults(data) {
+  const body = document.getElementById('scan-body');
+  if (!body) return;
+
+  // Group files by directory
+  const groups = {};
+  data.files.forEach(f => {
+    const dir = f.path.replace('/' + f.name, '') || '/';
+    if (!groups[dir]) groups[dir] = [];
+    groups[dir].push(f);
+  });
+
+  const fmtSize = s => s > 1048576 ? (s/1048576).toFixed(1)+'MB' : s > 1024 ? (s/1024).toFixed(0)+'KB' : s+'B';
+  const icon = t => t === 'video' ? '🎬' : t === 'audio' ? '🔊' : '🖼';
+
+  body.innerHTML = Object.entries(groups).map(([dir, files]) => `
+    <div class="scan-dir-group">
+      <div class="scan-dir-label" onclick="toggleScanDir(this)" style="display:flex;align-items:center;gap:.3rem;">
+        <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;" title="${dir}">📁 ${dir.split('/').slice(-2).join('/')}</span>
+        <button onclick="event.stopPropagation();copyScanPath('${dir}', this)" style="background:none;border:none;color:var(--dim);cursor:pointer;font-size:.65rem;padding:0 .2rem;flex-shrink:0;" title="Copy path">⎘</button>
+        ${_scanMode === 'ghost' ? `<button onclick="event.stopPropagation();deleteGhostDirContents('${dir}', this)" style="background:none;border:none;color:#f87171;cursor:pointer;font-size:.65rem;padding:0 .2rem;flex-shrink:0;" title="Delete all files in this folder on Ghost VM">🗑</button>` : ''}
+        <span style="flex-shrink:0;opacity:.6">${files.length}</span>
+      </div>
+      <div class="scan-dir-files">
+        ${files.map(f => `
+          <div class="scan-file-item" data-path="${f.path}" onclick="toggleScanFile(this, '${f.path}')">
+            <span class="scan-file-icon">${icon(f.type)}</span>
+            <span class="scan-file-name" title="${f.path}">${f.name}</span>
+            <button onclick="event.stopPropagation();copyScanPath('${f.path}', this)" style="background:none;border:none;color:var(--dim);cursor:pointer;font-size:.65rem;padding:0 .2rem;flex-shrink:0;" title="Copy path">⎘</button>
+            <button onclick="event.stopPropagation();addToSamples('${f.path}', this)" style="background:none;border:none;color:#00d4ff;cursor:pointer;font-size:.65rem;padding:0 .2rem;flex-shrink:0;font-weight:600;" title="Add to samples">⊕</button>
+            <span class="scan-file-size">${fmtSize(f.size)}</span>
+          </div>`).join('')}
+      </div>
+    </div>`).join('');
+}
+
+function toggleScanDir(el) {
+  const files = el.nextElementSibling;
+  if (files) files.style.display = files.style.display === 'none' ? '' : 'none';
+}
+
+function toggleScanFile(el, path) {
+  if (_selectedFiles.has(path)) {
+    _selectedFiles.delete(path);
+    el.classList.remove('selected');
+  } else {
+    _selectedFiles.add(path);
+    el.classList.add('selected');
+  }
+  const btn = document.getElementById('btn-import-selected');
+  if (btn) btn.style.display = _selectedFiles.size > 0 ? '' : 'none';
+}
+
+async function importSelected() {
+  if (!_scanContainer || _selectedFiles.size === 0) return;
+  const btn = document.getElementById('btn-import-selected');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Importing...'; }
+  // Build a temp dir path — import each file individually via import-dir of parent
+  const dirs = new Set([..._selectedFiles].map(p => p.replace('/'+p.split('/').pop(), '')));
+  let copied = 0;
+  for (const dir of dirs) {
+    // Filter files in this dir that are selected
+    const dirFiles = [..._selectedFiles].filter(p => p.startsWith(dir+'/'));
+    if (dirFiles.length === 0) continue;
+    const r = await fetch('/api/images/import-dir', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({path: dir, container: _scanContainer})
+    });
+    const d = await r.json();
+    copied += d.copied || 0;
+  }
+  log(`Imported ${copied} selected files from ${_scanContainer}`, 'ok');
+  _selectedFiles.clear();
+  document.querySelectorAll('.scan-file-item.selected').forEach(el => el.classList.remove('selected'));
+  if (btn) { btn.disabled = false; btn.textContent = '⬇ Import Selected'; btn.style.display = 'none'; }
+  await refreshGallery();
+}
+
+async function importAllScanned() {
+  if (!_scanContainer || !_scanData) return;
+  const btn = document.getElementById('btn-import-all');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Importing...'; }
+  let copied = 0;
+  if (_scanMode === 'ghost') {
+    // Import all scanned dirs from ghost
+    const dirs = Object.keys(_scanData.dirs);
+    for (const dir of dirs) {
+      try {
+        const r = await fetch('/api/images/import-dir-ghost', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({path: dir})
+        });
+        const d = await r.json();
+        copied += d.copied || 0;
+      } catch(e) {}
+    }
+    log(`Imported ${copied} files from ghost VM`, 'ok');
+  } else {
+    const dirs = Object.keys(_scanData.dirs);
+    for (const dir of dirs) {
+      const r = await fetch('/api/images/import-dir', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({path: dir, container: _scanContainer})
+      });
+      const d = await r.json();
+      copied += d.copied || 0;
+    }
+    log(`Imported all ${copied} files from ${_scanContainer}`, 'ok');
+  }
+  if (btn) { btn.disabled = false; btn.textContent = '⬇ Import All'; }
+  await refreshGallery();
+  await loadOutputFolders();
+}
+
+// Auto-scan when container becomes active
+async function autoScanIfActive() {
+  try {
+    const r = await fetch('/api/images/active-container', {cache:'no-store'});
+    const d = await r.json();
+    if (d.name && d.name !== _scanContainer) {
+      const status = document.getElementById('scan-status');
+      if (status) status.textContent = `Active: ${d.name} — click Scan`;
+    }
+  } catch(e) {}
+}
+
+
+// ── Scan Panel helpers ───────────────────────────────────────────────────────
+async function deleteGhostDirContents(dir, btn) {
+  if (!confirm(`Delete all files in:\n${dir}\n\nFiles are deleted from the Ghost VM. This cannot be undone.`)) return;
+  const orig = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = '⏳';
+  // Get files in this dir from current scan data
+  if (!_scanData) { btn.disabled = false; btn.textContent = orig; return; }
+  const files = _scanData.files.filter(f => f.path.replace('/'+f.name,'') === dir || f.path.replace('/'+f.name,'') === dir.replace(/\/+$/,''));
+  let deleted = 0, failed = 0;
+  for (const f of files) {
+    try {
+      const r = await fetch('/api/images/delete-ghost', {
+        method: 'DELETE',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({path: f.path})
+      });
+      const d = await r.json();
+      if (d.deleted) deleted++; else failed++;
+    } catch(e) { failed++; }
+  }
+  log(`Ghost folder delete: ${deleted} deleted, ${failed} failed`, failed > 0 ? 'err' : 'ok');
+  btn.disabled = false;
+  btn.textContent = deleted > 0 ? '✓' : '✗';
+  setTimeout(() => { btn.textContent = orig; }, 2000);
+  // Re-scan to refresh
+  if (deleted > 0) setTimeout(() => scanGhostVM(), 2000);
+}
+
+function copyScanPath(path, btn) {
+  // Fallback for http (non-secure context)
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(path).then(() => {
+      btn.textContent = '✓';
+      setTimeout(() => btn.textContent = '⎘', 1000);
+    });
+  } else {
+    // Fallback using textarea
+    const ta = document.createElement('textarea');
+    ta.value = path;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    try {
+      document.execCommand('copy');
+      btn.textContent = '✓';
+      setTimeout(() => btn.textContent = '⎘', 1000);
+    } catch(e) {}
+    document.body.removeChild(ta);
+  }
+}
+
+async function addToSamples(path, btn) {
+  if (!_scanContainer) { log('No active scan container', 'err'); return; }
+  const orig = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = '⏳';
+  try {
+    let d;
+    if (_scanMode === 'ghost') {
+      const r = await fetch('/api/images/fetch-from-ghost', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({path: path})
+      });
+      d = await r.json();
+    } else {
+      const r = await fetch('/api/images/add-to-samples', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({container: _scanContainer, path: path})
+      });
+      d = await r.json();
+    }
+    if (d.error) {
+      log('Add failed: ' + d.error, 'err');
+      btn.textContent = '✗';
+    } else {
+      btn.textContent = '✓';
+      btn.style.color = '#00ff88';
+      log(`Added ${d.saved} to samples${_scanMode === 'ghost' ? ' (ghost)' : ''}`, 'ok');
+      await refreshGallery();
+    }
+  } catch(e) {
+    btn.textContent = '✗';
+  }
+  btn.disabled = false;
+  setTimeout(() => { btn.textContent = orig; btn.style.color = '#00d4ff'; }, 2000);
+}
+
+// ── Delete selected files on Ghost VM ────────────────────────────────────────
+async function deleteSelectedOnGhost() {
+  if (_scanMode !== 'ghost' || _selectedFiles.size === 0) {
+    log('Select files in ghost scan first', 'err');
+    return;
+  }
+  const count = _selectedFiles.size;
+  if (!confirm(`Delete ${count} file${count !== 1 ? 's' : ''} from the Ghost VM?\nThis cannot be undone.`)) return;
+  const btn = document.getElementById('btn-delete-ghost');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Deleting...'; }
+  let deleted = 0, failed = 0;
+  for (const path of _selectedFiles) {
+    try {
+      const r = await fetch('/api/images/delete-ghost', {
+        method: 'DELETE',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({path})
+      });
+      const d = await r.json();
+      if (d.error) { failed++; } else { deleted++; }
+    } catch(e) { failed++; }
+  }
+  log(`Ghost delete: ${deleted} removed, ${failed} failed`, failed > 0 ? 'err' : 'ok');
+  _selectedFiles.clear();
+  document.querySelectorAll('.scan-file-item.selected').forEach(el => el.classList.remove('selected'));
+  const btnImpSel = document.getElementById('btn-import-selected');
+  if (btnImpSel) btnImpSel.style.display = 'none';
+  if (btn) { btn.disabled = false; btn.textContent = '✕ Delete on Ghost'; }
+  // Re-scan to refresh the list
+  await scanGhostVM();
+}
+
+</script>
+</body>
+</html>
