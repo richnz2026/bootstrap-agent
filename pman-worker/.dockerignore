@@ -1,0 +1,7 @@
+pearl-venv/lib/python3.12/site-packages/*/tests
+pearl-venv/lib/python3.12/site-packages/*/test
+pearl-venv/lib/python3.12/site-packages/*/__pycache__
+pearl-venv/lib/python3.12/site-packages/*.dist-info
+**/__pycache__
+**/*.pyc
+**/*.pyo
