@@ -32,3 +32,12 @@
 - 166 packages upgradable (defer — don't upgrade nvidia/cuda without testing)
 - vendor-reset DKMS removed — monitor if GPU reset between containers is affected
 - Music player service on ghost VM — deferred to next session
+
+## ACE-Step Music Service
+- Port changed from 7860 to 7861 (avoids conflict with Forge)
+- Added to dashboard: 🎵 ACE-STEP MUSIC section mirroring Forge layout
+- Start/stop via systemctl on ghost VM, exclusive GPU — stops lolminer/pearl/forge first
+- Fix: libavutil.so.56 missing (system has .58) — created symlink + ldconfig
+  `ln -s /usr/lib/x86_64-linux-gnu/libavutil.so.58 /usr/lib/x86_64-linux-gnu/libavutil.so.56`
+- UI accessible at localhost:7861 via SSH tunnel (add LocalForward 7861 to Mac ~/.ssh/config)
+- VRAM at idle: ~2.6GB (model loaded), leaves ~9.2GB free for generation
