@@ -1015,6 +1015,24 @@ def fetch_kvm():
         stats["forge_running"]   = False
         stats["forge_listening"] = False
 
+    # ACE-Step running check
+    try:
+        _ssh_a = ("ssh -i /home/rich-rob/.ssh/id_ed25519_vm -o ConnectTimeout=3 -o BatchMode=yes "
+                  "root@192.168.122.143")
+        acestep_active = run(
+            f"{_ssh_a} 'systemctl is-active acestep 2>/dev/null'",
+            timeout=5
+        ).strip()
+        acestep_port = run(
+            f"{_ssh_a} 'ss -tlnp | grep -q 7861 && echo yes || echo no'",
+            timeout=5
+        ).strip()
+        stats["acestep_running"]   = acestep_active == "active"
+        stats["acestep_listening"] = acestep_port == "yes"
+    except Exception:
+        stats["acestep_running"]   = False
+        stats["acestep_listening"] = False
+
     _set_state("kvm", stats)
 
 def fetch_xmrig():
@@ -2090,6 +2108,11 @@ def api_control_forge():
                  "--vae-in-fp16 --pin-shared-memory --cuda-stream "
                  "--gradio-allowed-path /home/rich-rob/stable-diffusion-webui-forge/outputs")
     if action == "start":
+        # Stop ACE-Step and miners first (exclusive GPU access)
+        run(f"{ssh} 'systemctl stop acestep 2>/dev/null'", timeout=10)
+        run(f"{ssh} "
+            "'systemctl stop lolminer 2>/dev/null; systemctl stop pearl 2>/dev/null'",
+            timeout=10)
         run(f"{ssh} \"su - rich-rob -c 'tmux new-session -d -s forge \\\"{forge_cmd}\\\"'\"", timeout=15)
         return jsonify({"status": "starting"})
     elif action == "stop":
@@ -2099,6 +2122,30 @@ def api_control_forge():
         out = run(f"{ssh} \"su - rich-rob -c 'tmux has-session -t forge 2>/dev/null && echo running || echo stopped'\"", timeout=5)
         listening = run(f"{ssh} 'ss -tlnp | grep -q 7860 && echo yes || echo no'", timeout=5)
         return jsonify({"status": out.strip(), "listening": listening.strip() == "yes"})
+
+@app.route("/api/control/acestep", methods=["POST"])
+def api_control_acestep():
+    action = (request.get_json(silent=True) or {}).get("action", "status")
+    ssh = ("ssh -i /home/rich-rob/.ssh/id_ed25519_vm -o ConnectTimeout=5 "
+           "-o BatchMode=yes root@192.168.122.143")
+    if action == "start":
+        # Stop Forge and miners first (exclusive GPU access)
+        run(f"{ssh} \"su - rich-rob -c 'tmux kill-session -t forge 2>/dev/null; pkill -f launch.py'\"", timeout=10)
+        run(f"{ssh} 'systemctl stop lolminer 2>/dev/null; systemctl stop pearl 2>/dev/null'", timeout=10)
+        run(f"{ssh} 'systemctl start acestep'", timeout=15)
+        return jsonify({"status": "starting"})
+    elif action == "stop":
+        run(f"{ssh} 'systemctl stop acestep'", timeout=15)
+        # Restart miners
+        run(f"{ssh} "
+            "'systemctl start lolminer 2>/dev/null; systemctl start pearl 2>/dev/null'",
+            timeout=10)
+        return jsonify({"status": "stopped"})
+    else:
+        active = run(f"{ssh} 'systemctl is-active acestep 2>/dev/null'", timeout=5).strip()
+        listening = run(f"{ssh} 'ss -tlnp | grep -q 7861 && echo yes || echo no'", timeout=5).strip()
+        return jsonify({"status": active, "listening": listening == "yes"})
+
 
 @app.route("/api/control/gaming/reboot", methods=["POST"])
 def api_gaming_reboot():
@@ -2997,7 +3044,20 @@ tr:hover td{background:rgba(255,255,255,.015);}
           <div style="display:flex;gap:.4rem;flex-wrap:wrap;">
             <button class="btn-ctrl btn-sm" id="forge-start-btn" onclick="forgeControl('start')">▶ Start</button>
             <button class="btn-ctrl btn-sm" id="forge-stop-btn" onclick="forgeControl('stop')">■ Stop</button>
-            <a id="forge-link" href="http://192.168.122.143:7860" target="_blank" style="display:none;font-size:.58rem;padding:.15rem .4rem;border-radius:3px;background:rgba(99,179,237,.1);border:1px solid rgba(99,179,237,.3);color:#63b3ed;text-decoration:none;">Open UI ↗</a>
+            <a id="forge-link" href="http://localhost:7860" target="_blank" style="display:none;font-size:.58rem;padding:.15rem .4rem;border-radius:3px;background:rgba(99,179,237,.1);border:1px solid rgba(99,179,237,.3);color:#63b3ed;text-decoration:none;">Open UI ↗</a>
+          </div>
+        </div>
+
+        <!-- ACE-Step -->
+        <div style="margin-top:.6rem;padding-top:.5rem;border-top:1px solid rgba(255,255,255,.07);">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.35rem;">
+            <span style="font-size:.6rem;font-weight:600;color:var(--dim);letter-spacing:.05em;">🎵 ACE-STEP MUSIC</span>
+            <span id="acestep-status" style="font-size:.58rem;padding:.1rem .35rem;border-radius:3px;background:rgba(255,255,255,.05);color:var(--dim)">—</span>
+          </div>
+          <div style="display:flex;gap:.4rem;flex-wrap:wrap;">
+            <button class="btn-ctrl btn-sm" id="acestep-start-btn" onclick="aceStepControl('start')">▶ Start</button>
+            <button class="btn-ctrl btn-sm" id="acestep-stop-btn" onclick="aceStepControl('stop')">■ Stop</button>
+            <a id="acestep-link" href="http://localhost:7861" target="_blank" style="display:none;font-size:.58rem;padding:.15rem .4rem;border-radius:3px;background:rgba(167,139,250,.1);border:1px solid rgba(167,139,250,.3);color:#a78bfa;text-decoration:none;">Open UI ↗</a>
           </div>
         </div>
 
@@ -5569,6 +5629,15 @@ async function forgeControl(action) {
   setTimeout(pollStats, 3000);
 }
 
+async function aceStepControl(action) {
+  await fetch('/api/control/acestep', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({action})
+  });
+  setTimeout(pollStats, 3000);
+}
+
 function syncControlButtons(d) {
   const x = d.xmrig || {};
   const k = d.kvm || {};
@@ -5675,6 +5744,21 @@ function syncControlButtons(d) {
   }
   if (forgeStart) forgeStart.className = 'btn-ctrl btn-sm' + (forgeRunning ? ' active' : '');
   if (forgeStop)  forgeStop.className  = 'btn-ctrl btn-sm' + (!forgeRunning ? ' active' : '');
+
+  // ACE-Step status
+  const aceStepStatus    = document.getElementById('acestep-status');
+  const aceStepLink      = document.getElementById('acestep-link');
+  const aceStepStart     = document.getElementById('acestep-start-btn');
+  const aceStepStop      = document.getElementById('acestep-stop-btn');
+  const aceStepRunning   = k.acestep_running   || false;
+  const aceStepListening = k.acestep_listening || false;
+  if (aceStepStatus) {
+    aceStepStatus.textContent = aceStepRunning ? (aceStepListening ? 'ready' : 'starting…') : 'stopped';
+    aceStepStatus.style.color = aceStepRunning ? (aceStepListening ? 'var(--green)' : 'var(--yellow, #f6c90e)') : 'var(--dim)';
+  }
+  if (aceStepLink)  aceStepLink.style.display  = aceStepListening ? 'inline' : 'none';
+  if (aceStepStart) aceStepStart.className = 'btn-ctrl btn-sm' + (aceStepRunning ? ' active' : '');
+  if (aceStepStop)  aceStepStop.className  = 'btn-ctrl btn-sm' + (!aceStepRunning ? ' active' : '');
 }
 </script>
 </body>
