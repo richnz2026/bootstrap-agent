@@ -41,3 +41,17 @@
   `ln -s /usr/lib/x86_64-linux-gnu/libavutil.so.58 /usr/lib/x86_64-linux-gnu/libavutil.so.56`
 - UI accessible at localhost:7861 via SSH tunnel (add LocalForward 7861 to Mac ~/.ssh/config)
 - VRAM at idle: ~2.6GB (model loaded), leaves ~9.2GB free for generation
+
+## XFS Corruption Incident (11:00 UTC)
+- Cause: docker build of pman-worker (7.29GB context) on ghost VM caused SIGBUS
+  crash, which corrupted the XFS filesystem on nvme0n1p1 (/var/lib/docker)
+- Symptoms: Docker dead, ghost VM unreachable, /var/lib/docker I/O error
+- Fix: xfs_repair -L /dev/nvme0n1p1 (log destroyed, repair completed)
+- /var/lib/docker was missing from /etc/fstab — added with nofail flag
+- All services restored: docker, ghost VM, kaalia, xmrig, dashboard
+
+## Prevention
+- Never run large docker builds (>1GB context) on the ghost VM
+- Build pman-worker image on blackwell host or gaming PC instead
+- The ghost VM qcow2 is on the same XFS volume — a crash during heavy I/O
+  can corrupt the filesystem and take down the whole Docker stack
