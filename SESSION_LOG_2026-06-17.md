@@ -55,3 +55,16 @@
 - Build pman-worker image on blackwell host or gaming PC instead
 - The ghost VM qcow2 is on the same XFS volume — a crash during heavy I/O
   can corrupt the filesystem and take down the whole Docker stack
+
+## pquota / storage-opt fix
+- After XFS repair, /var/lib/docker remounted without pquota
+- Docker --storage-opt failed, blocking customer container creation
+- Fixed: added pquota to fstab entry, rebooted to activate
+- Mount now shows: xfs (rw,relatime,...,prjquota)
+
+## pman-worker Docker image
+- Built on blackwell (not ghost VM) to avoid XFS corruption risk
+- Excluded pearl-gemm (197MB CUDA source, not needed at runtime)
+- Pushed to itsthateasymate/pman-worker:latest
+- Build context: ~/pman-worker-build/ on blackwell
+- Future builds: always build on blackwell, never on ghost VM
