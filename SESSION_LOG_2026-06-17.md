@@ -68,3 +68,11 @@
 - Pushed to itsthateasymate/pman-worker:latest
 - Build context: ~/pman-worker-build/ on blackwell
 - Future builds: always build on blackwell, never on ghost VM
+
+## pmate-worker Docker image
+- pman-worker build failed due to XFS layer corruption in Docker
+- Workaround: docker tag alphaminetech/pearl-miner:latest itsthateasymate/pmate-worker:latest
+- Pushed as itsthateasymate/pmate-worker:latest
+- Vast template updated to pmate-worker
+- PRL mining confirmed working on RTX 5090, GPU 100%, ~90°C
+- Vast.ai storage-opt error cleared after pquota reboot
