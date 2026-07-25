@@ -2,7 +2,7 @@
 # VFIO Watchdog — protects RTX 5070 from Vast.ai exposure
 # Runs every 10 seconds, ensures 5070 stays hidden when VM is down
 
-DOMAIN="mining-ai-vm"
+DOMAIN="ghost-vm-new"
 GPU_PCI="0000:03:00.0"
 AUD_PCI="0000:03:00.1"
 NTFY_TOPIC="blackwell-alerts"

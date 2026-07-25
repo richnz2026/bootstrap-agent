@@ -14,12 +14,12 @@ docker push <namespace>/<new-repo>:<tag>
 
 ## Worked example — 2026-06-20, blackwell-node-01
 
-Renamed `itsthateasymate/pbro-worker` → `itsthateasymate/ppal-worker`:
+Renamed `itsthateasymate/pbro-worker` → `itsthateasymate/psis-worker`:
 
 ```bash
 docker pull itsthateasymate/pbro-worker:latest
-docker tag itsthateasymate/pbro-worker:latest itsthateasymate/ppal-worker:latest
-docker push itsthateasymate/ppal-worker:latest
+docker tag itsthateasymate/pbro-worker:latest itsthateasymate/psis-worker:latest
+docker push itsthateasymate/psis-worker:latest
 ```
 
 Result: pushed cleanly. All layers were `Mounted from itsthateasymate/pbro-worker`
@@ -28,7 +28,7 @@ namespace and didn't re-upload them — fast push, no real data transfer).
 
 Final digest: `sha256:703cc5527b8f6f03f5c9842cde8a730baafeaa97375dee604482dedfc3304e02`
 
-`itsthateasymate/ppal-worker:latest` now exists as a new repo on Docker
+`itsthateasymate/psis-worker:latest` now exists as a new repo on Docker
 Hub. `itsthateasymate/pbro-worker:latest` still exists unchanged — delete
 it manually via Docker Hub web UI if a true rename (not a copy) is
 wanted.
